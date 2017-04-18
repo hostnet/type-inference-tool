@@ -1,0 +1,36 @@
+{
+    "name":        "hostnet/type-inference-tool",
+    "type":        "project",
+    "description": "Tool to infer param- and return types and declare them as return type declarations and type hints.",
+    "require": {
+        "php":                ">=7.0",
+        "monolog/monolog":    "^1.22",
+        "symfony/filesystem": "^3.2",
+        "symfony/finder":     "^3.2"
+    },
+    "require-dev": {
+        "hostnet/phpcs-tool": "^5.0.0",
+        "phpunit/phpunit":    "^6.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Hostnet\\Component\\TypeInference\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Hostnet\\Component\\TypeInference\\": "test/"
+        }
+    },
+    "repositories": [
+        {
+            "url":  "https://packagist.hostnetbv.nl",
+            "type": "composer"
+        }
+    ],
+    "archive": {
+        "exclude": [
+            "/test"
+        ]
+    }
+}
