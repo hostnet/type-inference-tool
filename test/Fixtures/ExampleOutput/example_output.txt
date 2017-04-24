@@ -1,0 +1,21 @@
+
+Type-Inference-Tool
+===================
+
+Started analysing Some/Project/Directory
+Applying generated instructions
+
+[OK] Done!
+
+Results
+-------
+
+Inferred and added the following amount of data:
+-------------- ------------ -------
+Return types   Type hints   Total
+-------------- ------------ -------
+1              1            2
+-------------- ------------ -------
+
+
+! [NOTE] Execution time:

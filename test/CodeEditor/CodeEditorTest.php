@@ -15,7 +15,7 @@ class CodeEditorTest extends TestCase
 {
     public function testGivenInstructionsAreAppliedToTargetProject()
     {
-        $target_project = 'just\\some\\project\\';
+        $target_project = 'just/some/project/';
         $code_editor    = new CodeEditor($target_project);
 
         $instruction_0 = $this->createMock(AbstractInstruction::class);
@@ -26,6 +26,6 @@ class CodeEditorTest extends TestCase
 
         $code_editor->setInstructions([$instruction_0, $instruction_1]);
 
-        $code_editor->applyInstructions();
+        $code_editor->applyInstructions($target_project);
     }
 }

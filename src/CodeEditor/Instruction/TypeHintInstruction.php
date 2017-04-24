@@ -5,8 +5,12 @@ declare(strict_types = 1);
  */
 namespace Hostnet\Component\TypeInference\CodeEditor\Instruction;
 
-use Hostnet\Component\TypeInference\Analyzer\Data\PhpType;
+use Hostnet\Component\TypeInference\Analyzer\Data\AnalyzedClass;
+use Hostnet\Component\TypeInference\Analyzer\Data\Type\NonScalarPhpType;
+use Hostnet\Component\TypeInference\Analyzer\Data\Type\PhpTypeInterface;
 use Hostnet\Component\TypeInference\CodeEditor\CodeEditorFile;
+use Psr\Log\LoggerInterface;
+use Psr\Log\NullLogger;
 
 /**
  * Instruction used to add a type hint to a parameter in a function declaration.
@@ -19,27 +23,33 @@ final class TypeHintInstruction extends AbstractInstruction
     private $target_arg_number;
 
     /**
-     * @var PhpType
+     * @var PhpTypeInterface
      */
     private $target_type_hint;
 
     /**
-     * @param string $namespace
-     * @param string $class_name
+     * @var LoggerInterface
+     */
+    private $logger;
+
+    /**
+     * @param AnalyzedClass $class
      * @param string $function_name
      * @param int $arg_number
-     * @param PhpType $type_hint
+     * @param PhpTypeInterface $type_hint
+     * @param LoggerInterface $logger
      */
     public function __construct(
-        string $namespace,
-        string $class_name,
+        AnalyzedClass $class,
         string $function_name,
         int $arg_number,
-        PhpType $type_hint
+        PhpTypeInterface $type_hint,
+        LoggerInterface $logger = null
     ) {
-        parent::__construct($namespace, $class_name, $function_name);
+        parent::__construct($class, $function_name);
         $this->target_arg_number = $arg_number;
         $this->target_type_hint  = $type_hint;
+        $this->logger            = $logger ?? new NullLogger();
     }
 
     /**
@@ -47,18 +57,20 @@ final class TypeHintInstruction extends AbstractInstruction
      * function is declared.
      *
      * @param string $target_project
-     * @throws \RuntimeException
+     * @param callable $diff_handler
+     * @param bool $overwrite_file
+     * @return bool Success indication
      */
-    public function apply(string $target_project)
+    public function apply(string $target_project, callable $diff_handler = null, bool $overwrite_file = true): bool
     {
         try {
             $file_to_modify = $this->retrieveFileToModify($target_project);
-        } catch (\InvalidArgumentException $e) {
-            return;
+            $updated_file   = $this->insertTypeHint($file_to_modify);
+            $this->saveFile($updated_file, $diff_handler, $overwrite_file);
+        } catch (\Exception $e) {
+            return false;
         }
-
-        $updated_file = $this->insertTypeHint($file_to_modify);
-        $this->saveFile($updated_file);
+        return true;
     }
 
     /**
@@ -66,16 +78,32 @@ final class TypeHintInstruction extends AbstractInstruction
      *
      * @param CodeEditorFile $file
      * @return CodeEditorFile
+     * @throws \RuntimeException
      */
     private function insertTypeHint(CodeEditorFile $file): CodeEditorFile
     {
-        $pattern     = sprintf(
-            '/function %s\((\n\s*)?((\$|&)\w+,(\s|\n)(\s*)?){%s}/',
+        $type                = $this->target_type_hint;
+        $type_representation = $type instanceof NonScalarPhpType ? $type->getClassName() : $type->getName();
+
+        $pattern      = sprintf(
+            '/function %s\((\n\s*)?((\w+\s)?(\$|&)\w+,(\s|\n)(\s*)?){%s}(?!(\s*)?\\\\?\w+)+/',
             $this->getTargetFunctionName(),
             $this->target_arg_number
         );
-        $replacement = sprintf('$0%s ', $this->target_type_hint->getName());
-        $file->setContents(preg_replace($pattern, $replacement, $file->getContents()));
+        $replacement  = sprintf('$0%s ', $type_representation);
+        $updated_file = preg_replace($pattern, $replacement, $file->getContents());
+
+        if (strcmp($updated_file, $file->getContents()) === 0) {
+            throw new \RuntimeException('Could not add type hint, there might already be one.');
+        }
+
+        $file->setContents($updated_file);
+        $this->logger->debug('TYPE_HINT: Added {type} to parameter {param_nr} in {fqcn}::{function}', [
+            'type' => $type_representation,
+            'param_nr' => $this->target_arg_number,
+            'fqcn' => $this->getTargetClass()->getFqcn(),
+            'function' => $this->getTargetFunctionName()
+        ]);
 
         return $file;
     }

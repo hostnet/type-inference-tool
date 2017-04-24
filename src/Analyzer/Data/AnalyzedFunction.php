@@ -11,19 +11,10 @@ namespace Hostnet\Component\TypeInference\Analyzer\Data;
  */
 class AnalyzedFunction
 {
-    /*
-     * TODO - Replace $namespace and $class_name for object AnalyzedClass
-     */
-
     /**
-     * @var string
+     * @var AnalyzedClass
      */
-    private $namespace;
-
-    /**
-     * @var string
-     */
-    private $class_name;
+    private $class;
 
     /**
      * @var string
@@ -41,14 +32,12 @@ class AnalyzedFunction
     private $collected_returns = [];
 
     /**
-     * @param string $namespace
-     * @param string $class_name
+     * @param AnalyzedClass $class
      * @param string $function_name
      */
-    public function __construct(string $namespace, string $class_name, string $function_name)
+    public function __construct(AnalyzedClass $class, string $function_name)
     {
-        $this->namespace     = $namespace;
-        $this->class_name    = $class_name;
+        $this->class         = $class;
         $this->function_name = $function_name;
     }
 
@@ -95,25 +84,17 @@ class AnalyzedFunction
     /**
      * @return string
      */
-    public function getNamespace(): string
-    {
-        return $this->namespace;
-    }
-
-    /**
-     * @return string
-     */
-    public function getClassName(): string
-    {
-        return $this->class_name;
-    }
-
-    /**
-     * @return string
-     */
     public function getFunctionName(): string
     {
         return $this->function_name;
+    }
+
+    /**
+     * @return AnalyzedClass
+     */
+    public function getClass(): AnalyzedClass
+    {
+        return $this->class;
     }
 
     /**
@@ -132,8 +113,8 @@ class AnalyzedFunction
         return $this->collected_returns;
     }
 
-    public function getFqcn(): string
+    public function setClass(AnalyzedClass $class)
     {
-        return $this->namespace . '\\' . $this->class_name;
+        $this->class = $class;
     }
 }

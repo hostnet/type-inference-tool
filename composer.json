@@ -3,10 +3,13 @@
     "type":        "project",
     "description": "Tool to infer param- and return types and declare them as return type declarations and type hints.",
     "require": {
-        "php":                ">=7.0",
-        "monolog/monolog":    "^1.22",
-        "symfony/filesystem": "^3.2",
-        "symfony/finder":     "^3.2"
+        "php":                                   ">=7.0",
+        "bramus/monolog-colored-line-formatter": "^2.0",
+        "monolog/monolog":                       "^1.22",
+        "sebastian/diff":                        "^1.4",
+        "symfony/console":                       "^3.2",
+        "symfony/filesystem":                    "^3.2",
+        "symfony/finder":                        "^3.2"
     },
     "require-dev": {
         "hostnet/phpcs-tool": "^5.0.0",
@@ -19,7 +22,11 @@
     },
     "autoload-dev": {
         "psr-4": {
-            "Hostnet\\Component\\TypeInference\\": "test/"
+            "Hostnet\\Component\\TypeInference\\": "test/",
+            "ExampleProject\\": [
+                "test/Fixtures/ExampleDynamicAnalysis/Example-Project/src/",
+                "test/Fixtures/ExampleDynamicAnalysis/Example-Project/test/"
+            ]
         }
     },
     "repositories": [

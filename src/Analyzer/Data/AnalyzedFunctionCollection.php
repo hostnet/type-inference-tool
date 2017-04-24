@@ -16,7 +16,16 @@ class AnalyzedFunctionCollection implements \Iterator
      * @var AnalyzedFunction[]
      */
     private $analyzed_functions = [];
-    private $position           = 0;
+
+    /**
+     * Different AnalyzedFunction with the same class-property should have their class
+     * pointed to the same object, this array holds these classes.
+     *
+     * @var string[] [fqnc => AnalyzedFunction]
+     */
+    private $shared_classes = [];
+
+    private $position = 0;
 
     /**
      * Appends a list of AnalyzedFunction to the collection. If the function itself
@@ -28,17 +37,32 @@ class AnalyzedFunctionCollection implements \Iterator
     public function addAll(array $analyzed_functions)
     {
         foreach ($analyzed_functions as $function) {
-            try {
-                $existing_analyzed_function = $this->get(
-                    $function->getFqcn(),
-                    $function->getFunctionName()
-                );
+            $this->add($function);
+        }
+    }
 
-                $existing_analyzed_function->addAllCollectedArguments($function->getCollectedArguments());
-                $existing_analyzed_function->addAllCollectedReturns($function->getCollectedReturns());
-            } catch (EntryNotFoundException $e) {
-                $this->analyzed_functions[] = $function;
-            }
+    /**
+     * Adds an AnalyzedFunction to the collection.
+     *
+     * @param AnalyzedFunction $analyzed_function
+     */
+    public function add(AnalyzedFunction $analyzed_function)
+    {
+        $fqcn = $analyzed_function->getClass()->getFqcn();
+
+        if (!array_key_exists($fqcn, $this->shared_classes)) {
+            $this->shared_classes[$fqcn] = $analyzed_function->getClass();
+        }
+
+        $this->shared_classes[$fqcn]->addMethod($analyzed_function->getFunctionName());
+        $analyzed_function->setClass($this->shared_classes[$fqcn]);
+
+        try {
+            $existing_analyzed_function = $this->get($fqcn, $analyzed_function->getFunctionName());
+            $existing_analyzed_function->addAllCollectedArguments($analyzed_function->getCollectedArguments());
+            $existing_analyzed_function->addAllCollectedReturns($analyzed_function->getCollectedReturns());
+        } catch (EntryNotFoundException $e) {
+            $this->analyzed_functions[] = $analyzed_function;
         }
     }
 
@@ -53,22 +77,16 @@ class AnalyzedFunctionCollection implements \Iterator
     private function get(string $fqcn, string $function_name): AnalyzedFunction
     {
         foreach ($this->analyzed_functions as $function) {
-            if ($function->getFqcn() === $fqcn
-                && $function->getFunctionName() === $function_name
-            ) {
+            if ($function->getFunctionName() === $function_name && $function->getClass()->getFqcn() === $fqcn) {
                 return $function;
             }
         }
 
-        throw new EntryNotFoundException(sprintf(
-            'AnalyzedFunction %s::%s does not exist',
-            $fqcn,
-            $function_name
-        ));
+        throw new EntryNotFoundException(sprintf('AnalyzedFunction %s::%s does not exist', $fqcn, $function_name));
     }
 
     /**
-     * {@inheritdoc}
+     * @inheritdoc
      */
     public function current()
     {
@@ -76,7 +94,7 @@ class AnalyzedFunctionCollection implements \Iterator
     }
 
     /**
-     * {@inheritdoc}
+     * @inheritdoc
      */
     public function next()
     {
@@ -84,7 +102,7 @@ class AnalyzedFunctionCollection implements \Iterator
     }
 
     /**
-     * {@inheritdoc}
+     * @inheritdoc
      */
     public function key()
     {
@@ -92,7 +110,7 @@ class AnalyzedFunctionCollection implements \Iterator
     }
 
     /**
-     * {@inheritdoc}
+     * @inheritdoc
      */
     public function valid()
     {
@@ -100,10 +118,18 @@ class AnalyzedFunctionCollection implements \Iterator
     }
 
     /**
-     * {@inheritdoc}
+     * @inheritdoc
      */
     public function rewind()
     {
         $this->position = 0;
+    }
+
+    /**
+     * @return AnalyzedFunction[]
+     */
+    public function getAll(): array
+    {
+        return $this->analyzed_functions;
     }
 }

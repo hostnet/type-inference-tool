@@ -5,8 +5,12 @@ declare(strict_types = 1);
  */
 namespace Hostnet\Component\TypeInference\CodeEditor\Instruction;
 
-use Hostnet\Component\TypeInference\Analyzer\Data\PhpType;
+use Hostnet\Component\TypeInference\Analyzer\Data\AnalyzedClass;
+use Hostnet\Component\TypeInference\Analyzer\Data\Type\NonScalarPhpType;
+use Hostnet\Component\TypeInference\Analyzer\Data\Type\PhpTypeInterface;
 use Hostnet\Component\TypeInference\CodeEditor\CodeEditorFile;
+use Psr\Log\LoggerInterface;
+use Psr\Log\NullLogger;
 
 /**
  * Instruction used to add a return type to a function declaration.
@@ -14,20 +18,30 @@ use Hostnet\Component\TypeInference\CodeEditor\CodeEditorFile;
 final class ReturnTypeInstruction extends AbstractInstruction
 {
     /**
-     * @var PhpType
+     * @var PhpTypeInterface
      */
     private $target_return_type;
 
     /**
-     * @param string $namespace
-     * @param string $class_name
-     * @param string $function_name
-     * @param PhpType $return_type
+     * @var LoggerInterface
      */
-    public function __construct(string $namespace, string $class_name, string $function_name, PhpType $return_type)
-    {
-        parent::__construct($namespace, $class_name, $function_name);
+    private $logger;
+
+    /**
+     * @param AnalyzedClass $class
+     * @param string $function_name
+     * @param PhpTypeInterface $return_type
+     * @param LoggerInterface $logger
+     */
+    public function __construct(
+        AnalyzedClass $class,
+        string $function_name,
+        PhpTypeInterface $return_type,
+        LoggerInterface $logger = null
+    ) {
+        parent::__construct($class, $function_name);
         $this->target_return_type = $return_type;
+        $this->logger             = $logger ?? new NullLogger();
     }
 
     /**
@@ -35,18 +49,20 @@ final class ReturnTypeInstruction extends AbstractInstruction
      * is declared.
      *
      * @param string $target_project
-     * @throws \RuntimeException
+     * @param callable $diff_handler
+     * @param bool $overwrite_file
+     * @return bool Success indication
      */
-    public function apply(string $target_project)
+    public function apply(string $target_project, callable $diff_handler = null, bool $overwrite_file = true): bool
     {
         try {
             $file_to_modify = $this->retrieveFileToModify($target_project);
-        } catch (\InvalidArgumentException $e) {
-            return;
+            $updated_file   = $this->insertReturnType($file_to_modify);
+            $this->saveFile($updated_file, $diff_handler, $overwrite_file);
+        } catch (\Exception $e) {
+            return false;
         }
-
-        $updated_file = $this->insertReturnType($file_to_modify);
-        $this->saveFile($updated_file);
+        return true;
     }
 
     /**
@@ -54,13 +70,27 @@ final class ReturnTypeInstruction extends AbstractInstruction
      *
      * @param CodeEditorFile $file
      * @return CodeEditorFile Updated file
+     * @throws \RuntimeException
      */
     private function insertReturnType(CodeEditorFile $file): CodeEditorFile
     {
-        $pattern     = sprintf('/function %s\((\n.*)*.*\)/', $this->getTargetFunctionName());
-        $replacement = sprintf('$0: %s', $this->target_return_type->getName());
+        $type                = $this->target_return_type;
+        $type_representation = $type instanceof NonScalarPhpType ? $type->getClassName() : $type->getName();
 
-        $file->setContents(preg_replace($pattern, $replacement, $file->getContents()));
+        $pattern      = sprintf('/function %s\((\n.*)*.*\)(?!:\s*\w+)/', $this->getTargetFunctionName());
+        $replacement  = sprintf('$0: %s', $type_representation);
+        $updated_file = preg_replace($pattern, $replacement, $file->getContents());
+
+        if (strcmp($updated_file, $file->getContents()) === 0) {
+            throw new \RuntimeException('Could not add return type declaration, there might already be one.');
+        }
+
+        $file->setContents($updated_file);
+        $this->logger->debug('RETURN_TYPE: Added {type} to {fqcn}::{function}', [
+            'type' => $type_representation,
+            'fqcn' => $this->getTargetClass()->getFqcn(),
+            'function' => $this->getTargetFunctionName()
+        ]);
 
         return $file;
     }

@@ -14,32 +14,41 @@ use Hostnet\Component\TypeInference\CodeEditor\Instruction\AbstractInstruction;
 class CodeEditor
 {
     /**
-     * @var string
-     */
-    private $target_project;
-
-    /**
      * @var AbstractInstruction[]
      */
-    private $instructions;
+    private $instructions = [];
+
+    private $applied_instructions = [];
 
     /**
-     * @param string $target_project
+     * @var callable
      */
-    public function __construct(string $target_project)
-    {
-        $this->target_project = $target_project;
-    }
+    private $diff_handler;
 
     /**
      * Applies all given instructions. These instructions modify the source-code
      * of the given target project.
+     *
+     * @param string $target_project
+     * @param bool $overwrite_files
      */
-    public function applyInstructions()
+    public function applyInstructions(string $target_project, bool $overwrite_files = true)
     {
         foreach ($this->instructions as $instruction) {
-            $instruction->apply($this->target_project);
+            if ($instruction->apply($target_project, $this->diff_handler, $overwrite_files)) {
+                $this->applied_instructions[] = $instruction;
+            }
         }
+    }
+
+    /**
+     * Returns the successfully applied instructions.
+     *
+     * @return AbstractInstruction[]
+     */
+    public function getAppliedInstructions(): array
+    {
+        return $this->applied_instructions;
     }
 
     /**
@@ -48,5 +57,16 @@ class CodeEditor
     public function setInstructions(array $instructions)
     {
         $this->instructions = $instructions;
+    }
+
+    /**
+     * Sets an callback so the instructions can output diffs
+     * to the console to show the modifications to a file.
+     *
+     * @param callable $handler
+     */
+    public function setDiffHandler(callable $handler)
+    {
+        $this->diff_handler = $handler;
     }
 }

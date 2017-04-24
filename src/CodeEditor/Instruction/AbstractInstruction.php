@@ -5,6 +5,7 @@ declare(strict_types = 1);
  */
 namespace Hostnet\Component\TypeInference\CodeEditor\Instruction;
 
+use Hostnet\Component\TypeInference\Analyzer\Data\AnalyzedClass;
 use Hostnet\Component\TypeInference\CodeEditor\CodeEditorFile;
 use Symfony\Component\Filesystem\Exception\IOException;
 use Symfony\Component\Filesystem\Filesystem;
@@ -17,14 +18,9 @@ use Symfony\Component\Finder\Finder;
 abstract class AbstractInstruction
 {
     /**
-     * @var string
+     * @var AnalyzedClass
      */
-    private $target_namespace;
-
-    /**
-     * @var string
-     */
-    private $target_class_name;
+    private $target_class;
 
     /**
      * @var string
@@ -32,14 +28,12 @@ abstract class AbstractInstruction
     private $target_function_name;
 
     /**
-     * @param string $target_namespace
-     * @param string $target_class_name
+     * @param AnalyzedClass $target_class
      * @param string $target_function_name
      */
-    public function __construct(string $target_namespace, string $target_class_name, string $target_function_name)
+    public function __construct(AnalyzedClass $target_class, string $target_function_name)
     {
-        $this->target_namespace     = $target_namespace;
-        $this->target_class_name    = $target_class_name;
+        $this->target_class         = $target_class;
         $this->target_function_name = $target_function_name;
     }
 
@@ -47,8 +41,15 @@ abstract class AbstractInstruction
      * Applies the instruction to the target project.
      *
      * @param string $target_project
+     * @param callable $diff_handler
+     * @param bool $overwrite_file
+     * @return bool Success indication
      */
-    abstract public function apply(string $target_project);
+    abstract public function apply(
+        string $target_project,
+        callable $diff_handler = null,
+        bool $overwrite_file = true
+    ): bool;
 
     /**
      * Searches a target project for the source-file containing the function
@@ -68,8 +69,8 @@ abstract class AbstractInstruction
             $file_contents = $file->getContents();
 
             if (strpos($file_contents, sprintf('function %s(', $this->target_function_name)) !== false
-                && strpos($file_contents, sprintf('class %s', $this->target_class_name)) !== false
-                && strpos($file_contents, sprintf('namespace %s;', $this->target_namespace)) !== false
+                && strpos($file_contents, sprintf('class %s', $this->target_class->getClassName())) !== false
+                && strpos($file_contents, sprintf('namespace %s;', $this->target_class->getNamespace())) !== false
             ) {
                 return new CodeEditorFile($file->getRealPath(), $file_contents);
             }
@@ -83,10 +84,24 @@ abstract class AbstractInstruction
      * the original file.
      *
      * @param CodeEditorFile $file
+     * @param callable $diff_handler
+     * @param bool $overwrite_file
      * @throws IOException
      */
-    protected function saveFile(CodeEditorFile $file)
+    protected function saveFile(CodeEditorFile $file, callable $diff_handler = null, bool $overwrite_file)
     {
+        if ($diff_handler !== null) {
+            $diff_handler(
+                file_get_contents($this->target_class->getFullPath()),
+                $file->getContents(),
+                $this->target_class->getFullPath()
+            );
+        }
+
+        if (!$overwrite_file) {
+            return;
+        }
+
         $fs = new Filesystem();
         $fs->dumpFile($file->getPath(), $file->getContents());
     }
@@ -97,5 +112,13 @@ abstract class AbstractInstruction
     protected function getTargetFunctionName(): string
     {
         return $this->target_function_name;
+    }
+
+    /**
+     * @return AnalyzedClass
+     */
+    public function getTargetClass(): AnalyzedClass
+    {
+        return $this->target_class;
     }
 }

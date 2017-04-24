@@ -37,8 +37,14 @@ class AnalyzedClass
     private $methods;
 
     /**
+     * @var string
+     */
+    private $full_path;
+
+    /**
      * @param string $namespace
      * @param string $class_name
+     * @param string $full_path
      * @param AnalyzedClass $extends
      * @param AnalyzedClass[] $implements
      * @param string[] $methods
@@ -46,12 +52,14 @@ class AnalyzedClass
     public function __construct(
         string $namespace,
         string $class_name,
-        AnalyzedClass $extends,
+        string $full_path,
+        AnalyzedClass $extends = null,
         array $implements,
-        array $methods
+        array $methods = []
     ) {
         $this->namespace  = $namespace;
         $this->class_name = $class_name;
+        $this->full_path  = $full_path;
         $this->extends    = $extends;
         $this->implements = $implements;
         $this->methods    = $methods;
@@ -61,13 +69,15 @@ class AnalyzedClass
      * Returns a list with all the types a given class inherits.
      *
      * @param AnalyzedClass $class
-     * @param string[] $parents
-     * @return string[]
+     * @param AnalyzedClass[] $parents
+     * @return AnalyzedClass[]
      */
-    public function getParents(AnalyzedClass $class, array $parents = []): array
+    public function getParents(AnalyzedClass $class = null, array $parents = []): array
     {
-        if (!in_array($class->getClassName(), $parents, true)) {
-            $parents[] = $class->getClassName();
+        $class = $class ?? $this;
+
+        if (!in_array($class, $parents, true)) {
+            $parents[] = $class;
         }
 
         if ($class->getExtends() !== null) {
@@ -79,6 +89,27 @@ class AnalyzedClass
         }
 
         return $parents;
+    }
+
+    /**
+     * Takes two arrays containing AnalyzedClasses and returns an array with
+     * the matching entries.
+     *
+     * @param AnalyzedClass[] $types
+     * @param AnalyzedClass[] $compare_to_types
+     * @return AnalyzedClass[]
+     */
+    public static function matchAnalyzedClasses(array $types, array $compare_to_types): array
+    {
+        $matches = [];
+        foreach ($types as $type) {
+            foreach ($compare_to_types as $compare_to_type) {
+                if ($type->getFqcn() === $compare_to_type->getFqcn()) {
+                    $matches[] = $type;
+                }
+            }
+        }
+        return $matches;
     }
 
     /**
@@ -114,6 +145,14 @@ class AnalyzedClass
     }
 
     /**
+     * @return string
+     */
+    public function getFqcn(): string
+    {
+        return $this->namespace . '\\' . $this->class_name;
+    }
+
+    /**
      * @return string[]
      */
     public function getMethods(): array
@@ -122,18 +161,22 @@ class AnalyzedClass
     }
 
     /**
-     * @param AnalyzedClass $extends
+     * @return string
      */
-    public function setExtends(AnalyzedClass $extends)
+    public function getFullPath(): string
     {
-        $this->extends = $extends;
+        return $this->full_path;
     }
 
     /**
-     * @return string
+     * Appends a function to the list with methods, if not present.
+     *
+     * @param string $function_name
      */
-    public function getFqcn(): string
+    public function addMethod(string $function_name)
     {
-        return $this->namespace . '\\' . $this->class_name;
+        if (!in_array($function_name, $this->methods, true)) {
+            $this->methods[] = $function_name;
+        }
     }
 }
