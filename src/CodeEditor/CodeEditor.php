@@ -21,7 +21,7 @@ class CodeEditor
     /**
      * @var AbstractInstruction[]
      */
-    private $instructions;
+    private $instructions = [];
 
     /**
      * @param string $target_project

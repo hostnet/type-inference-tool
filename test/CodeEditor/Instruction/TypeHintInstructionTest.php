@@ -5,7 +5,8 @@ declare(strict_types = 1);
  */
 namespace Hostnet\Component\TypeInference\CodeEditor\Instruction;
 
-use Hostnet\Component\TypeInference\Analyzer\Data\PhpType;
+use Hostnet\Component\TypeInference\Analyzer\Data\AnalyzedClass;
+use Hostnet\Component\TypeInference\Analyzer\Data\Type\ScalarPhpType;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Filesystem\Filesystem;
 
@@ -49,25 +50,14 @@ class TypeHintInstructionTest extends TestCase
     {
         $namespace  = 'ExampleProject\\Component';
         $class_name = 'ExampleClass';
+        $class      = new AnalyzedClass($namespace, $class_name, '', null, [], []);
         $arg_number = 0;
-        $type_hint  = new PhpType('int');
+        $type_hint  = new ScalarPhpType(ScalarPhpType::TYPE_INT);
 
-        $instruction_single_lined = new TypeHintInstruction(
-            $namespace,
-            $class_name,
-            'singleLineFunc',
-            $arg_number,
-            $type_hint
-        );
+        $instruction_single_lined = new TypeHintInstruction($class, 'singleLineFunc', $arg_number, $type_hint);
         $instruction_single_lined->apply($this->fixtures_dir . $this->target_project);
 
-        $instruction_multi_lines = new TypeHintInstruction(
-            $namespace,
-            $class_name,
-            'multiLineFunc',
-            $arg_number,
-            $type_hint
-        );
+        $instruction_multi_lines = new TypeHintInstruction($class, 'multiLineFunc', $arg_number, $type_hint);
         $instruction_multi_lines->apply($this->fixtures_dir . $this->target_project);
 
         self::assertFileEquals(

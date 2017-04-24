@@ -5,7 +5,8 @@ declare(strict_types = 1);
  */
 namespace Hostnet\Component\TypeInference\CodeEditor\Instruction;
 
-use Hostnet\Component\TypeInference\Analyzer\Data\PhpType;
+use Hostnet\Component\TypeInference\Analyzer\Data\AnalyzedClass;
+use Hostnet\Component\TypeInference\Analyzer\Data\Type\PhpTypeInterface;
 use Hostnet\Component\TypeInference\CodeEditor\CodeEditorFile;
 
 /**
@@ -14,19 +15,18 @@ use Hostnet\Component\TypeInference\CodeEditor\CodeEditorFile;
 final class ReturnTypeInstruction extends AbstractInstruction
 {
     /**
-     * @var PhpType
+     * @var PhpTypeInterface
      */
     private $target_return_type;
 
     /**
-     * @param string $namespace
-     * @param string $class_name
+     * @param AnalyzedClass $class
      * @param string $function_name
-     * @param PhpType $return_type
+     * @param PhpTypeInterface $return_type
      */
-    public function __construct(string $namespace, string $class_name, string $function_name, PhpType $return_type)
+    public function __construct(AnalyzedClass $class, string $function_name, PhpTypeInterface $return_type)
     {
-        parent::__construct($namespace, $class_name, $function_name);
+        parent::__construct($class, $function_name);
         $this->target_return_type = $return_type;
     }
 

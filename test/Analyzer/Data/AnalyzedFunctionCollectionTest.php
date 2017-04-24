@@ -5,6 +5,7 @@ declare(strict_types = 1);
  */
 namespace Hostnet\Component\TypeInference\Analyzer\Data;
 
+use Hostnet\Component\TypeInference\Analyzer\Data\Type\NonScalarPhpType;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -18,12 +19,14 @@ class AnalyzedFunctionCollectionTest extends TestCase
         $class_name    = 'SomeClass';
         $function_name = 'SomeFunction';
 
-        $analyzed_function_0 = new AnalyzedFunction($namespace, $class_name, $function_name);
-        $analyzed_function_0->addCollectedReturn(new AnalyzedReturn(new PhpType('SomeType')));
-        $analyzed_function_0->addCollectedArguments(new AnalyzedCall([new PhpType('SomeType')]));
+        $class = new AnalyzedClass($namespace, $class_name, '', null, [], []);
 
-        $analyzed_function_1 = new AnalyzedFunction($namespace, $class_name, $function_name);
-        $analyzed_function_1->addCollectedReturn(new AnalyzedReturn(new PhpType('AnotherType')));
+        $analyzed_function_0 = new AnalyzedFunction($class, $function_name);
+        $analyzed_function_0->addCollectedReturn(new AnalyzedReturn(new NonScalarPhpType('', 'ObjA', '', null, [])));
+        $analyzed_function_0->addCollectedArguments(new AnalyzedCall([new NonScalarPhpType('', 'ObjA', '', null, [])]));
+
+        $analyzed_function_1 = new AnalyzedFunction($class, $function_name);
+        $analyzed_function_1->addCollectedReturn(new AnalyzedReturn(new NonScalarPhpType('', 'ObjB', '', null, [])));
 
         $analyzed_function_collection = new AnalyzedFunctionCollection();
         $analyzed_function_collection->addAll([$analyzed_function_0, $analyzed_function_1]);

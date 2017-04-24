@@ -5,10 +5,11 @@ declare(strict_types = 1);
  */
 namespace Hostnet\Component\TypeInference\Tool;
 
-use Hostnet\Component\TypeInference\Analyzer\ProjectAnalyzer;
-use Hostnet\Component\TypeInference\CodeEditor\CodeEditor;
 use PHPUnit\Framework\TestCase;
-use PHPUnit_Framework_MockObject_MockObject;
+use Symfony\Component\Console\Application;
+use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Tester\CommandTester;
+use Symfony\Component\Filesystem\Filesystem;
 
 /**
  * @covers \Hostnet\Component\TypeInference\Tool\Tool
@@ -16,48 +17,72 @@ use PHPUnit_Framework_MockObject_MockObject;
 class ToolTest extends TestCase
 {
     /**
-     * @var Tool
+     * @var Application
      */
-    private $tool;
+    private $application;
 
     /**
-     * @var ProjectAnalyzer|PHPUnit_Framework_MockObject_MockObject
+     * @var Command
      */
-    private $project_analyzer;
+    private $command;
 
     /**
-     * @var CodeEditor|PHPUnit_Framework_MockObject_MockObject
+     * @var CommandTester
      */
-    private $code_editor;
+    private $command_tester;
+
+    /**
+     * @var string
+     */
+    private $log_dir;
 
     protected function setUp()
     {
-        $target_project  = 'some/path/';
-        $logs_output_dir = dirname(__DIR__) . '/output/logs.log';
-        $this->tool      = new Tool($target_project, $logs_output_dir);
+        $tool = new Tool();
 
-        $this->project_analyzer = $this->createMock(ProjectAnalyzer::class);
-        $this->tool->setProjectAnalyzer($this->project_analyzer);
+        $this->application = new Application();
+        $this->application->add($tool);
 
-        $this->code_editor = $this->createMock(CodeEditor::class);
-        $this->tool->setCodeEditor($this->code_editor);
+        $this->command        = $this->application->find(Tool::EXECUTE_COMMAND);
+        $this->command_tester = new CommandTester($this->command);
+        $this->log_dir        = $log_dir = dirname(__DIR__) . '/Fixtures/Logs/logs.log';
     }
 
-    public function testExecuteShouldApplyInstructionFromAnalyzerToTargetProject()
+    protected function tearDown()
     {
-        $this->project_analyzer->expects($this->exactly(2))->method('addAnalyzer');
-        $this->project_analyzer->expects($this->exactly(1))->method('analyse');
-        $this->code_editor->expects($this->exactly(1))->method('applyInstructions');
-
-        $this->tool->execute();
+        $fs = new Filesystem();
+        $fs->remove($this->log_dir);
     }
 
-    public function testExecuteShouldNotApplyInstructionsFromAnalyzerToTargetProject()
+    public function testExecuteWithTarget()
     {
-        $this->project_analyzer->expects($this->exactly(2))->method('addAnalyzer');
-        $this->project_analyzer->expects($this->exactly(1))->method('analyse');
-        $this->code_editor->expects($this->exactly(0))->method('applyInstructions');
+        $target_project = 'Some/Project/Directory';
+        $this->command_tester->execute([Tool::ARG_TARGET => $target_project]);
+        $output = $this->command_tester->getDisplay();
 
-        $this->tool->execute(false);
+        self::assertContains('Started analysing ' . $target_project, $output);
+        self::assertContains('Applying generated instructions', $output);
+    }
+
+    public function testExecuteAnalyzeOnlyWithTarget()
+    {
+        $target_project = 'Some/Project/Directory';
+        $this->command_tester->execute([
+            Tool::ARG_TARGET => $target_project,
+            '--' . Tool::OPTION_ANALYSE_ONLY[0] => true
+        ]);
+        $output = $this->command_tester->getDisplay();
+
+        self::assertNotContains('Applying generated instructions', $output);
+    }
+
+    public function testExecuteWithLoggingEnabled()
+    {
+        $this->command_tester->execute([
+            Tool::ARG_TARGET => 'Some/Project/Directory',
+            '--' . Tool::OPTION_LOG_DIR[0] =>  $this->log_dir
+        ]);
+
+        self::assertFileExists($this->log_dir);
     }
 }

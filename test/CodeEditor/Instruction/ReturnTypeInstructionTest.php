@@ -5,7 +5,8 @@ declare(strict_types = 1);
  */
 namespace Hostnet\Component\TypeInference\CodeEditor\Instruction;
 
-use Hostnet\Component\TypeInference\Analyzer\Data\PhpType;
+use Hostnet\Component\TypeInference\Analyzer\Data\AnalyzedClass;
+use Hostnet\Component\TypeInference\Analyzer\Data\Type\ScalarPhpType;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Filesystem\Filesystem;
 
@@ -48,14 +49,13 @@ class ReturnTypeInstructionTest extends TestCase
 
     public function testInstructionShouldAddAReturnTypeToFunctionDeclaration()
     {
-        $namespace   = 'ExampleProject\\Component';
-        $class_name  = 'ExampleClass';
-        $return_type = new PhpType('string');
+        $class       = new AnalyzedClass('ExampleProject\\Component', 'ExampleClass', '', null, [], []);
+        $return_type = new ScalarPhpType(ScalarPhpType::TYPE_STRING);
 
-        $instruction_single_lined = new ReturnTypeInstruction($namespace, $class_name, 'singleLineFunc', $return_type);
+        $instruction_single_lined = new ReturnTypeInstruction($class, 'singleLineFunc', $return_type);
         $instruction_single_lined->apply($this->fixtures_dir . $this->target_project);
 
-        $instruction_multi_lined = new ReturnTypeInstruction($namespace, $class_name, 'multiLineFunc', $return_type);
+        $instruction_multi_lined = new ReturnTypeInstruction($class, 'multiLineFunc', $return_type);
         $instruction_multi_lined->apply($this->fixtures_dir . $this->target_project);
 
         self::assertFileEquals(
@@ -66,7 +66,8 @@ class ReturnTypeInstructionTest extends TestCase
 
     public function testInstructionShouldNotBeAppliedWhenTargetNotFound()
     {
-        $instruction = new ReturnTypeInstruction('Does\\Not\\Exists', 'Invalid', 'NonExistent', new PhpType('float'));
+        $non_existent_class = new AnalyzedClass('Does\\Not\\Exists', 'Invalid', '', null, [], []);
+        $instruction        = new ReturnTypeInstruction($non_existent_class, 'NonExistent', new ScalarPhpType('float'));
         $instruction->apply($this->fixtures_dir . $this->target_project);
 
         self::assertFileEquals(

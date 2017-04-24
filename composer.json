@@ -5,6 +5,7 @@
     "require": {
         "php":                ">=7.0",
         "monolog/monolog":    "^1.22",
+        "symfony/console":    "^3.2",
         "symfony/filesystem": "^3.2",
         "symfony/finder":     "^3.2"
     },

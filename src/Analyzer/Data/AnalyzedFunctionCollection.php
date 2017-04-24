@@ -30,7 +30,7 @@ class AnalyzedFunctionCollection implements \Iterator
         foreach ($analyzed_functions as $function) {
             try {
                 $existing_analyzed_function = $this->get(
-                    $function->getFqcn(),
+                    $function->getClass()->getFqcn(),
                     $function->getFunctionName()
                 );
 
@@ -53,9 +53,7 @@ class AnalyzedFunctionCollection implements \Iterator
     private function get(string $fqcn, string $function_name): AnalyzedFunction
     {
         foreach ($this->analyzed_functions as $function) {
-            if ($function->getFqcn() === $fqcn
-                && $function->getFunctionName() === $function_name
-            ) {
+            if ($function->getFunctionName() === $function_name && $function->getClass()->getFqcn() === $fqcn) {
                 return $function;
             }
         }
@@ -68,7 +66,7 @@ class AnalyzedFunctionCollection implements \Iterator
     }
 
     /**
-     * {@inheritdoc}
+     * @inheritdoc
      */
     public function current()
     {
@@ -76,7 +74,7 @@ class AnalyzedFunctionCollection implements \Iterator
     }
 
     /**
-     * {@inheritdoc}
+     * @inheritdoc
      */
     public function next()
     {
@@ -84,7 +82,7 @@ class AnalyzedFunctionCollection implements \Iterator
     }
 
     /**
-     * {@inheritdoc}
+     * @inheritdoc
      */
     public function key()
     {
@@ -92,7 +90,7 @@ class AnalyzedFunctionCollection implements \Iterator
     }
 
     /**
-     * {@inheritdoc}
+     * @inheritdoc
      */
     public function valid()
     {
@@ -100,7 +98,7 @@ class AnalyzedFunctionCollection implements \Iterator
     }
 
     /**
-     * {@inheritdoc}
+     * @inheritdoc
      */
     public function rewind()
     {

@@ -5,7 +5,8 @@ declare(strict_types = 1);
  */
 namespace Hostnet\Component\TypeInference\CodeEditor\Instruction;
 
-use Hostnet\Component\TypeInference\Analyzer\Data\PhpType;
+use Hostnet\Component\TypeInference\Analyzer\Data\AnalyzedClass;
+use Hostnet\Component\TypeInference\Analyzer\Data\Type\PhpTypeInterface;
 use Hostnet\Component\TypeInference\CodeEditor\CodeEditorFile;
 
 /**
@@ -19,25 +20,23 @@ final class TypeHintInstruction extends AbstractInstruction
     private $target_arg_number;
 
     /**
-     * @var PhpType
+     * @var PhpTypeInterface
      */
     private $target_type_hint;
 
     /**
-     * @param string $namespace
-     * @param string $class_name
+     * @param AnalyzedClass $class
      * @param string $function_name
      * @param int $arg_number
-     * @param PhpType $type_hint
+     * @param PhpTypeInterface $type_hint
      */
     public function __construct(
-        string $namespace,
-        string $class_name,
+        AnalyzedClass $class,
         string $function_name,
         int $arg_number,
-        PhpType $type_hint
+        PhpTypeInterface $type_hint
     ) {
-        parent::__construct($namespace, $class_name, $function_name);
+        parent::__construct($class, $function_name);
         $this->target_arg_number = $arg_number;
         $this->target_type_hint  = $type_hint;
     }

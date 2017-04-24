@@ -5,6 +5,8 @@ declare(strict_types = 1);
  */
 namespace Hostnet\Component\TypeInference\Analyzer\Data;
 
+use Hostnet\Component\TypeInference\Analyzer\Data\Type\NonScalarPhpType;
+use Hostnet\Component\TypeInference\Analyzer\Data\Type\ScalarPhpType;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -23,19 +25,21 @@ class AnalyzedFunctionTest extends TestCase
 
     protected function setUp()
     {
-        $this->analyzed_function = new AnalyzedFunction($this->namespace, $this->class_name, $this->function_name);
+        $analyzed_class          = new AnalyzedClass($this->namespace, $this->class_name, '', null, [], []);
+        $this->analyzed_function = new AnalyzedFunction($analyzed_class, $this->function_name);
     }
 
     public function testAddCollectedArgumentsShouldAddArguments()
     {
-        $arguments_0 = [new PhpType('SomeObject')];
-        $arguments_1 = [new PhpType('SomeObject')];
+        $arguments_0 = [new NonScalarPhpType('ns', 'SomeObject', '', null, [], [])];
+        $arguments_1 = [new NonScalarPhpType('ns', 'SomeObject', '', null, [], [])];
 
         $this->analyzed_function->addCollectedArguments(new AnalyzedCall($arguments_0));
         $this->analyzed_function->addCollectedArguments(new AnalyzedCall($arguments_1));
 
-        self::assertSame($this->namespace, $this->analyzed_function->getNamespace());
-        self::assertSame($this->class_name, $this->analyzed_function->getClassName());
+        self::assertSame($this->namespace, $this->analyzed_function->getClass()->getNamespace());
+        self::assertSame($this->class_name, $this->analyzed_function->getClass()->getClassName());
+        self::assertSame($this->namespace . '\\' . $this->class_name, $this->analyzed_function->getClass()->getFqcn());
         self::assertSame($this->function_name, $this->analyzed_function->getFunctionName());
 
         $collected_calls = $this->analyzed_function->getCollectedArguments();
@@ -47,24 +51,21 @@ class AnalyzedFunctionTest extends TestCase
 
     public function testAddCollectedReturnShouldAddReturns()
     {
-        $return_0 = 'string';
-        $return_1 = 'int';
-
-        $this->analyzed_function->addCollectedReturn(new AnalyzedReturn(new PhpType($return_0)));
-        $this->analyzed_function->addCollectedReturn(new AnalyzedReturn(new PhpType($return_1)));
+        $this->analyzed_function->addCollectedReturn(new AnalyzedReturn(new ScalarPhpType(ScalarPhpType::TYPE_STRING)));
+        $this->analyzed_function->addCollectedReturn(new AnalyzedReturn(new ScalarPhpType(ScalarPhpType::TYPE_INT)));
 
         $collected_returns = $this->analyzed_function->getCollectedReturns();
 
         self::assertCount(2, $collected_returns);
-        self::assertSame($return_0, $collected_returns[0]->getType()->getName());
-        self::assertSame($return_1, $collected_returns[1]->getType()->getName());
+        self::assertSame(ScalarPhpType::TYPE_STRING, $collected_returns[0]->getType()->getName());
+        self::assertSame(ScalarPhpType::TYPE_INT, $collected_returns[1]->getType()->getName());
     }
 
     public function testAddAllCollectedArgumentsShouldAppendAListOfArguments()
     {
         $analyzed_calls = [
-            [new PhpType('string'), new PhpType('int')],
-            [new PhpType('obj'), new PhpType('float')]
+            [new ScalarPhpType(ScalarPhpType::TYPE_STRING), new ScalarPhpType(ScalarPhpType::TYPE_INT)],
+            [new NonScalarPhpType('', 'SomeClass', '', null, []), new ScalarPhpType(ScalarPhpType::TYPE_FLOAT)]
         ];
 
         $this->analyzed_function->addAllCollectedArguments($analyzed_calls);
@@ -75,9 +76,9 @@ class AnalyzedFunctionTest extends TestCase
     public function testAddAllCollectedReturnsShouldAppendAListOfReturns()
     {
         $analyzed_returns = [
-            new AnalyzedReturn(new PhpType('SomeObject')),
-            new AnalyzedReturn(new PhpType('string')),
-            new AnalyzedReturn(new PhpType('float'))
+            new AnalyzedReturn(new NonScalarPhpType('ns', 'SomeObject', '', null, [])),
+            new AnalyzedReturn(new ScalarPhpType(ScalarPhpType::TYPE_STRING)),
+            new AnalyzedReturn(new ScalarPhpType(ScalarPhpType::TYPE_FLOAT))
         ];
 
         $this->analyzed_function->addAllCollectedReturns($analyzed_returns);
