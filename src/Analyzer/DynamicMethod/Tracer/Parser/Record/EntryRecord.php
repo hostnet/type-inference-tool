@@ -34,20 +34,20 @@ final class EntryRecord extends AbstractRecord
     private $parameters;
 
     /**
-     * @param int $function_nr
+     * @param int $number
      * @param string $function_name
      * @param bool $user_defined
      * @param string $file_name
      * @param string[] $parameters
      */
     public function __construct(
-        int $function_nr,
+        int $number,
         string $function_name,
         bool $user_defined,
         string $file_name,
         array $parameters
     ) {
-        parent::__construct($function_nr);
+        parent::__construct($number);
         $this->function_name = $function_name;
         $this->user_defined  = $user_defined;
         $this->file_name     = $file_name;

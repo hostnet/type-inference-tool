@@ -1,0 +1,13 @@
+Version: 2.5.0
+File format: 4
+TRACE START [2017-03-27 10:23:52]
+8	1	0	0.004165	1106328	someFunction	1		/path/to/file/SomeFunctions.php	57	1	string(10)	array(0)
+8	1	1	0.004171	1106704
+8	1	R			string(10)
+18	8950	0	0.131369	3657160	eval	1	'namespace Double\\ExampleProject\\SomeObject {\nclass P1 extends \\ExampleProject\\SomeObject implements \\Prophecy\\Prophecy\\ProphecySubjectInterface, \\Prophecy\\Doubler\\Generator\\ReflectionInterface {\nprivate $objectProphecy;\n\npublic  function __construct( $mixed_int_float = NULL) {\nif (0 < func_num_args()) {\n    call_user_func_array(array(\'parent\', \'__construct\'), func_get_args());\n}\n}\npublic  function __call( $name,  $arguments) {\nthrow new \\Prophecy\\Exception\\Doubler\\MethodNotFoundException(\n    sprintf(\'Method `%s::%s()` not found.\', get_class($this), func_get_arg(0)),\n    $this->getProphecy(), func_get_arg(0)\n);\n}\npublic  function setProphecy(\\Prophecy\\Prophecy\\ProphecyInterface $prophecy) {\n$this->objectProphecy = $prophecy;\n}\npublic  function getProphecy() {\nreturn $this->objectProphecy;\n}\n\n}\n}'	/just/some/path/type-inference/vendor/phpspec/prophecy/src/Prophecy/Doubler/Generator/ClassCreator.php	49	0
+13	8118	R			class Double\ExampleProject\SomeObject\P1
+13	8118	R			class Double\ExampleProject\SomethingElse\P2
+18	8986	0	0.130010	3657320	eval	1	'namespace Double\\ExampleProject\\SomeObject {\nclass P1 extends \\ExampleProject\\SomeObject implements \\Prophecy\\Prophecy\\ProphecySubjectInterface, \\Prophecy\\Doubler\\Generator\\ReflectionInterface, \\Class\\That\\Is\\Implemented {\nprivate $objectProphecy;\n\npublic  function __construct( $mixed_int_float = NULL) {\nif (0 < func_num_args()) {\n    call_user_func_array(array(\'parent\', \'__construct\'), func_get_args());\n}\n}\npublic  function __call( $name,  $arguments) {\nthrow new \\Prophecy\\Exception\\Doubler\\MethodNotFoundException(\n    sprintf(\'Method `%s::%s()` not found.\', get_class($this), func_get_arg(0)),\n    $this->getProphecy(), func_get_arg(0)\n);\n}\npublic  function setProphecy(\\Prophecy\\Prophecy\\ProphecyInterface $prophecy) {\n$this->objectProphecy = $prophecy;\n}\npublic  function getProphecy() {\nreturn $this->objectProphecy;\n}\n\n}\n}'	/just/some/path/tools/type-inference/vendor/phpspec/prophecy/src/Prophecy/Doubler/Generator/ClassCreator.php	49	0
+			0.085153	186368
+TRACE END   [2017-03-27 10:23:52]
+

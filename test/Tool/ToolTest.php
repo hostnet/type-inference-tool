@@ -64,7 +64,7 @@ class ToolTest extends TestCase
 
         $this->command        = $this->application->find(Tool::EXECUTE_COMMAND);
         $this->command_tester = new CommandTester($this->command);
-        $this->log_dir        = $log_dir = dirname(__DIR__) . '/Fixtures/Logs/logs.log';
+        $this->log_dir        = $log_dir = dirname(__DIR__) . '/Fixtures/output/Logs/logs.log';
     }
 
     protected function tearDown()
@@ -130,5 +130,15 @@ class ToolTest extends TestCase
             file_get_contents(dirname(__DIR__) . '/Fixtures/ExampleOutput/example_output.txt'),
             $output
         );
+    }
+
+    public function testExecuteWithShowDiffsShouldHaveADiffSection()
+    {
+        $this->command_tester->execute([
+            Tool::ARG_TARGET => 'Some/Project/Directory',
+            '--' . Tool::OPTION_SHOW_DIFF[0] => true
+        ]);
+        $output = $this->command_tester->getDisplay();
+        self::assertContains("Diffs\n-----", $output);
     }
 }

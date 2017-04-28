@@ -53,11 +53,13 @@ class ReturnTypeInstructionTest extends TestCase
         $return_type = new ScalarPhpType(ScalarPhpType::TYPE_STRING);
 
         $instruction_single_lined = new ReturnTypeInstruction($class, 'singleLineFunc', $return_type);
-        $instruction_single_lined->apply($this->fixtures_dir . $this->target_project);
+        $result_1                 = $instruction_single_lined->apply($this->fixtures_dir . $this->target_project);
 
         $instruction_multi_lined = new ReturnTypeInstruction($class, 'multiLineFunc', $return_type);
-        $instruction_multi_lined->apply($this->fixtures_dir . $this->target_project);
+        $result_2                = $instruction_multi_lined->apply($this->fixtures_dir . $this->target_project);
 
+        self::assertTrue($result_1);
+        self::assertTrue($result_2);
         self::assertFileEquals(
             $this->fixtures_dir . $this->project_expected . $this->example_class,
             $this->fixtures_dir . $this->target_project . $this->example_class
@@ -68,8 +70,54 @@ class ReturnTypeInstructionTest extends TestCase
     {
         $non_existent_class = new AnalyzedClass('Does\\Not\\Exists', 'Invalid', '', null, [], []);
         $instruction        = new ReturnTypeInstruction($non_existent_class, 'NonExistent', new ScalarPhpType('float'));
-        $instruction->apply($this->fixtures_dir . $this->target_project);
+        $result             = $instruction->apply($this->fixtures_dir . $this->target_project);
 
+        self::assertFalse($result);
+        self::assertFileEquals(
+            $this->fixtures_dir . $this->project_before . $this->example_class,
+            $this->fixtures_dir . $this->target_project . $this->example_class
+        );
+    }
+
+    public function testInstructionShouldFailWhenFileNotInTargetProject()
+    {
+        $class       = new AnalyzedClass('ExampleProject\\Component', 'ExampleClass', '', null, [], []);
+        $return_type = new ScalarPhpType(ScalarPhpType::TYPE_STRING);
+        $instruction = new ReturnTypeInstruction($class, 'singleLineFunc', $return_type);
+
+        self::assertFalse($instruction->apply($this->fixtures_dir . $this->project_expected));
+    }
+
+    public function testApplyWithDiffHandlerShouldInvokeCallback()
+    {
+        $file        = $this->fixtures_dir . $this->target_project . $this->example_class;
+        $class       = new AnalyzedClass('ExampleProject\\Component', 'ExampleClass', $file, null, [], []);
+        $return_type = new ScalarPhpType(ScalarPhpType::TYPE_STRING);
+        $instruction = new ReturnTypeInstruction($class, 'singleLineFunc', $return_type);
+
+        $before      = '';
+        $after       = '';
+        $edited_path = '';
+        $handler     = function (string $original, string $new, string $path) use (&$before, &$after, &$edited_path) {
+            $before      = $original;
+            $after       = $new;
+            $edited_path = $path;
+        };
+
+        self::assertTrue($instruction->apply($this->fixtures_dir . $this->target_project, $handler));
+        self::assertStringEqualsFile($this->fixtures_dir . $this->project_before . $this->example_class, $before);
+        self::assertStringEqualsFile($this->fixtures_dir . $this->target_project . $this->example_class, $after);
+        self::assertSame($file, $edited_path);
+    }
+
+    public function testApplyWithoutOverwritingShouldNotUpdateActualFiles()
+    {
+        $file        = $this->fixtures_dir . $this->target_project . $this->example_class;
+        $class       = new AnalyzedClass('ExampleProject\\Component', 'ExampleClass', $file, null, [], []);
+        $return_type = new ScalarPhpType(ScalarPhpType::TYPE_STRING);
+        $instruction = new ReturnTypeInstruction($class, 'singleLineFunc', $return_type);
+
+        self::assertTrue($instruction->apply($this->fixtures_dir . $this->target_project, null, false));
         self::assertFileEquals(
             $this->fixtures_dir . $this->project_before . $this->example_class,
             $this->fixtures_dir . $this->target_project . $this->example_class

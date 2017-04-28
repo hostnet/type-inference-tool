@@ -53,7 +53,7 @@ class TracerPhpTypeMapper
 
         list($namespace, $class_name) = self::extractTraceFunctionName($trace_type);
 
-        if ($class_name === TracerPhpTypeMapper::TYPE_UNKNOWN || $trace_type === 'null') {
+        if ($class_name === self::TYPE_UNKNOWN || $trace_type === 'null') {
             return new UnresolvablePhpType(UnresolvablePhpType::NONE);
         }
 
@@ -70,7 +70,7 @@ class TracerPhpTypeMapper
     public static function extractTraceFunctionName(string $trace_function_name): array
     {
         if ($trace_function_name === '???') {
-            return [null, self::TYPE_UNKNOWN, null];// tmp
+            return [null, self::TYPE_UNKNOWN, null];
         }
 
         $regex_trace_parts = '/(class\s)?((\w+\\\)*)(\w+)(->|::)?(\w+)?(\\\{closure})?/';
@@ -82,7 +82,7 @@ class TracerPhpTypeMapper
         $class_name    = ($namespace === false ? '\\' : '') . $matches[4][0];
 
         return [
-            $namespace !== false ? $namespace : null,
+            $namespace !== false ? $namespace : '',
             $class_name,
             $function_name !== '' ? $function_name : null
         ];

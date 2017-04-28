@@ -18,6 +18,11 @@ class CodeEditor
      */
     private $instructions = [];
 
+    /**
+     * Successful applied instructions.
+     *
+     * @var AbstractInstruction[]
+     */
     private $applied_instructions = [];
 
     /**

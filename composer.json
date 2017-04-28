@@ -9,7 +9,8 @@
         "sebastian/diff":                        "^1.4",
         "symfony/console":                       "^3.2",
         "symfony/filesystem":                    "^3.2",
-        "symfony/finder":                        "^3.2"
+        "symfony/finder":                        "^3.2",
+        "symfony/stopwatch":                     "^3.2"
     },
     "require-dev": {
         "hostnet/phpcs-tool": "^5.0.0",
@@ -24,8 +25,12 @@
         "psr-4": {
             "Hostnet\\Component\\TypeInference\\": "test/",
             "ExampleProject\\": [
-                "test/Fixtures/ExampleDynamicAnalysis/Example-Project/src/",
-                "test/Fixtures/ExampleDynamicAnalysis/Example-Project/test/"
+                "test/Fixtures/ExampleDynamicAnalysis/Example-Project-1/src/",
+                "test/Fixtures/ExampleDynamicAnalysis/Example-Project-1/test/"
+            ],
+            "ExampleProject2\\": [
+                "test/Fixtures/ExampleDynamicAnalysis/Example-Project-2/src/",
+                "test/Fixtures/ExampleDynamicAnalysis/Example-Project-2/test/"
             ]
         }
     },

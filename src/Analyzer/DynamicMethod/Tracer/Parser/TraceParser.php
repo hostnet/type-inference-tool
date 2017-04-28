@@ -9,6 +9,7 @@ use Hostnet\Component\TypeInference\Analyzer\DynamicMethod\Tracer\Parser\Record\
 use Hostnet\Component\TypeInference\Analyzer\DynamicMethod\Tracer\Parser\Record\EntryRecord;
 use Hostnet\Component\TypeInference\Analyzer\DynamicMethod\Tracer\Parser\Record\ExitRecord;
 use Hostnet\Component\TypeInference\Analyzer\DynamicMethod\Tracer\Parser\Record\ReturnRecord;
+use Symfony\Component\Filesystem\Filesystem;
 
 /**
  * Parses trace files to a list of objects representing each record.
@@ -45,6 +46,11 @@ class TraceParser
      */
     public function parse(): array
     {
+        $file_system = new Filesystem();
+        if (!$file_system->exists($this->input_trace_file)) {
+            throw new \InvalidArgumentException(sprintf('Trace not found: %s', $this->input_trace_file));
+        }
+
         return $this->generateRecordList();
     }
 
@@ -59,7 +65,7 @@ class TraceParser
         $records  = [self::ENTRY_RECORD_NAME => [], self::RETURN_RECORD_NAME => []];
         $line_nr  = 0;
         $handle   = fopen($this->input_trace_file, 'rb');
-        $line_max = $this->getTraceSize() - 5;
+        $line_max = $this->getTraceSize() - 2;
         while (($buffer = fgets($handle)) !== false) {
             $line_nr++;
             if ($line_nr <= 3 || $line_nr >= $line_max) {
@@ -87,6 +93,7 @@ class TraceParser
      * Determines whether a record line from a string either is an entry-, exit-, or
      * return record.
      *
+     * @see https://xdebug.org/docs/all_settings#trace_format
      * @param string $record_line
      * @return AbstractRecord ReturnRecord|EntryRecord|ExitRecord
      */
@@ -105,8 +112,9 @@ class TraceParser
                 $param = $this->extractProphecy($param);
             });
 
+            // TODO - Remove magic numbers
             return new EntryRecord(
-                (int) $record_fields[1]/* TODO - Remove magic numbers */,
+                (int) $record_fields[1],
                 $record_fields[EntryRecord::FUNCTION_NAME_INDEX],
                 ((int) $record_fields[6]) === 1,
                 $record_fields[8],
@@ -124,7 +132,7 @@ class TraceParser
      * @param string $type
      * @return string
      */
-    private function extractProphecy(string $type)
+    private function extractProphecy(string $type): string
     {
         if (strpos($type, 'Double\\') === false) {
             return $type;

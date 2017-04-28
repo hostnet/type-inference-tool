@@ -35,7 +35,7 @@ final class ScalarPhpType implements PhpTypeInterface
     }
 
     /**
-     * @inheritdoc
+     * {@inheritdoc}
      */
     public function getName(): string
     {

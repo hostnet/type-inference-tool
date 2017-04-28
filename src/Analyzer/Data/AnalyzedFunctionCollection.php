@@ -25,6 +25,11 @@ class AnalyzedFunctionCollection implements \Iterator
      */
     private $shared_classes = [];
 
+    /**
+     * Current position in the iterator.
+     *
+     * @var int
+     */
     private $position = 0;
 
     /**
@@ -86,7 +91,7 @@ class AnalyzedFunctionCollection implements \Iterator
     }
 
     /**
-     * @inheritdoc
+     * {@inheritdoc}
      */
     public function current()
     {
@@ -94,7 +99,7 @@ class AnalyzedFunctionCollection implements \Iterator
     }
 
     /**
-     * @inheritdoc
+     * {@inheritdoc}
      */
     public function next()
     {
@@ -102,7 +107,7 @@ class AnalyzedFunctionCollection implements \Iterator
     }
 
     /**
-     * @inheritdoc
+     * {@inheritdoc}
      */
     public function key()
     {
@@ -110,7 +115,7 @@ class AnalyzedFunctionCollection implements \Iterator
     }
 
     /**
-     * @inheritdoc
+     * {@inheritdoc}
      */
     public function valid()
     {
@@ -118,7 +123,7 @@ class AnalyzedFunctionCollection implements \Iterator
     }
 
     /**
-     * @inheritdoc
+     * {@inheritdoc}
      */
     public function rewind()
     {

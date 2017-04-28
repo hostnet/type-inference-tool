@@ -19,11 +19,11 @@ class BootstrapGenerator
     /**
      * @var Filesystem
      */
-    private $fs;
+    private $file_system;
 
     public function __construct()
     {
-        $this->fs = new Filesystem();
+        $this->file_system = new Filesystem();
     }
 
     /**
@@ -52,11 +52,11 @@ PHP;
             $this->retrieveBootstrapLocation($target_project_directory)
         );
 
-        if (!$this->fs->exists($output_dir)) {
-            $this->fs->mkdir($output_dir);
+        if (!$this->file_system->exists($output_dir)) {
+            $this->file_system->mkdir($output_dir);
         }
 
-        $this->fs->dumpFile($output_dir . $output_file . '.php', $contents);
+        $this->file_system->dumpFile($output_dir . $output_file . '.php', $contents);
     }
 
     /**
@@ -68,15 +68,16 @@ PHP;
     private function retrieveBootstrapLocation(string $target_project_directory): string
     {
         $default_bootstrap_location = '/vendor/autoload.php';
-        if (!$this->fs->exists($target_project_directory . 'phpunit.xml.dist' /* TODO - Could also be phpunit.xml */)) {
+        if (!$this->file_system->exists($target_project_directory . '/phpunit.xml.dist')) {
+            // TODO - Could also be phpunit.xml
             return $default_bootstrap_location;
         }
 
-        $phpunit_config = file_get_contents($target_project_directory . 'phpunit.xml.dist');
+        $phpunit_config = file_get_contents($target_project_directory . '/phpunit.xml.dist');
         $document       = new \DOMDocument();
         $document->loadXML($phpunit_config);
         $bootstrap_location = $document->getElementsByTagName('phpunit')->item(0)->getAttribute('bootstrap');
 
-        return $bootstrap_location;
+        return '/' . $bootstrap_location;
     }
 }

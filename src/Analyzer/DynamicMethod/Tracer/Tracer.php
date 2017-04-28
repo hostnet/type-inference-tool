@@ -5,10 +5,6 @@ declare(strict_types = 1);
  */
 namespace Hostnet\Component\TypeInference\Analyzer\DynamicMethod\Tracer;
 
-/**
- * Retrieves the traces of the target project by executing its
- * unit tests.
- */
 use Hostnet\Component\TypeInference\Analyzer\DynamicMethod\Bootstrap\BootstrapGenerator;
 use Symfony\Component\Filesystem\Exception\IOException;
 
@@ -18,7 +14,7 @@ use Symfony\Component\Filesystem\Exception\IOException;
  */
 class Tracer
 {
-    const DEFAULT_TEST_FOLDER   = '/test';
+    const DEFAULT_TEST_FOLDER   = 'test';
     const OUTPUT_FOLDER_NAME    = '/output/';
     const OUTPUT_BOOTSTRAP_NAME = 'generated_autoload';
 
@@ -56,8 +52,10 @@ class Tracer
     public function __construct(
         string $output_dir,
         string $target_project_directory,
-        string $inferrer_directory /* TODO - Should be removed */,
-        string $test_folder = self::DEFAULT_TEST_FOLDER /* TODO - Should be removed */
+        // TODO - Should be removed
+        string $inferrer_directory,
+        // TODO - Should be removed
+        string $test_folder = self::DEFAULT_TEST_FOLDER
     ) {
         $this->output_directory         = $output_dir;
         $this->target_project_directory = $target_project_directory;
@@ -68,6 +66,7 @@ class Tracer
     /**
      * Generates a bootstrap file, executes PHPUnit for the target project and stores
      * the generated trace file to the output directory.
+     *
      * @throws IOException
      */
     public function generateTrace()
