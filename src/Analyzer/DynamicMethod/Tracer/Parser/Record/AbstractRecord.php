@@ -11,9 +11,11 @@ namespace Hostnet\Component\TypeInference\Analyzer\DynamicMethod\Tracer\Parser\R
 abstract class AbstractRecord
 {
     /**
+     * Unique number in a trace mapped to a function.
+     *
      * @var int
      */
-    private $function_nr;
+    private $number;
 
     /**
      * @var string
@@ -21,19 +23,19 @@ abstract class AbstractRecord
     private $function_declaration_file;
 
     /**
-     * @param int $function_nr
+     * @param int $number
      */
-    public function __construct(int $function_nr)
+    public function __construct(int $number)
     {
-        $this->function_nr = $function_nr;
+        $this->number = $number;
     }
 
     /**
      * @return int
      */
-    public function getFunctionNr(): int
+    public function getNumber(): int
     {
-        return $this->function_nr;
+        return $this->number;
     }
 
     /**

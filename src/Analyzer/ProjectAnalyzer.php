@@ -44,7 +44,6 @@ class ProjectAnalyzer
     private $analyzers = [];
 
     /**
-     * ProjectAnalyzer constructor.
      * @param LoggerInterface $logger
      */
     public function __construct(LoggerInterface $logger = null)

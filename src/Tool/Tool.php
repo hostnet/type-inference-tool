@@ -21,12 +21,12 @@ use Psr\Log\NullLogger;
 use SebastianBergmann\Diff\Differ;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Exception\InvalidArgumentException;
-use Symfony\Component\Console\Exception\LogicException;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
+use Symfony\Component\Stopwatch\Stopwatch;
 
 /**
  * Class used to start the tool. Applies dynamic- and static analysis to infer
@@ -35,6 +35,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  */
 class Tool extends Command
 {
+    const NAME                = 'Type-Inference-Tool';
     const EXECUTE_COMMAND     = 'execute';
     const ARG_TARGET          = 'target';
     const OPTION_LOG_DIR      = ['log-dir', 'l'];
@@ -61,10 +62,10 @@ class Tool extends Command
     private $io;
 
     /**
-     * @inheritdoc
+     * {@inheritdoc}
      *
      * @param ProjectAnalyzer $project_analyzer
-     * @throws LogicException
+     * @param CodeEditor $code_editor
      */
     public function __construct(ProjectAnalyzer $project_analyzer, CodeEditor $code_editor, string $name = null)
     {
@@ -75,7 +76,7 @@ class Tool extends Command
     }
 
     /**
-     * @inheritdoc
+     * {@inheritdoc}
      *
      * @throws InvalidArgumentException
      */
@@ -108,7 +109,7 @@ class Tool extends Command
     }
 
     /**
-     * @inheritdoc
+     * {@inheritdoc}
      *
      * @throws InvalidArgumentException
      * @throws \InvalidArgumentException
@@ -116,9 +117,11 @@ class Tool extends Command
      */
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-        $start_time = microtime(true);
-        $this->io   = new SymfonyStyle($input, $output);
-        $this->io->title('Type-Inference-Tool');
+        $stopwatch = new Stopwatch();
+        $stopwatch->start(self::NAME);
+
+        $this->io = new SymfonyStyle($input, $output);
+        $this->io->title(self::NAME);
 
         $target_project = $input->getArgument(self::ARG_TARGET);
         $logger         = $this->getLogger($input->getOption(self::OPTION_LOG_DIR[0]));
@@ -126,16 +129,17 @@ class Tool extends Command
 
         $modification_instructions = $this->analyseProject($target_project, $logger);
 
+        $overwrite_files = !$input->getOption(self::OPTION_ANALYSE_ONLY[0]);
         $this->applyInstructions(
             $target_project,
             $modification_instructions,
             $input->getOption(self::OPTION_SHOW_DIFF[0]),
-            !$input->getOption(self::OPTION_ANALYSE_ONLY[0])
+            $overwrite_files
         );
 
         $this->io->success('Done!');
         $this->printResults();
-        $this->outputStatistics($start_time, $logger);
+        $this->outputStatistics($stopwatch, $logger);
     }
 
     /**
@@ -147,13 +151,13 @@ class Tool extends Command
      * @return LoggerInterface
      * @throws \Exception
      */
-    private function getLogger(string $log_dir = null)
+    private function getLogger(string $log_dir = null): LoggerInterface
     {
         if (!$log_dir) {
             return new NullLogger();
         }
 
-        $logger  = new Logger('type-inference-tool');
+        $logger  = new Logger(self::NAME);
         $handler = new StreamHandler($log_dir);
         $handler->setFormatter(new ColoredLineFormatter());
         $logger->pushHandler($handler);
@@ -165,12 +169,12 @@ class Tool extends Command
      * Outputs the execution time in seconds and the peak memory used
      *  to both the console output and logger.
      *
-     * @param float $start_time
+     * @param Stopwatch $stopwatch
      * @param LoggerInterface $logger
      */
-    private function outputStatistics(float $start_time, LoggerInterface $logger)
+    private function outputStatistics(Stopwatch $stopwatch, LoggerInterface $logger)
     {
-        $total_time = round(microtime(true) - $start_time, 2);
+        $total_time = round($stopwatch->stop(self::NAME)->getDuration() / 1000, 2);
         $mem        = round(memory_get_peak_usage(true) / 1024 / 1024, 2);
 
         $logger->info('DONE. Execution time: {time}s - Memory: {memory}MB', ['time' => $total_time,'memory' =>$mem]);
@@ -184,7 +188,7 @@ class Tool extends Command
      * passes a callable to all instructions, allowing the instruction to
      * output a diff before overwriting a file.
      */
-    private function showDiffs()
+    private function enableDiffOutput()
     {
         $this->io->section('Diffs');
         $differ = new Differ('', false);
@@ -208,13 +212,11 @@ class Tool extends Command
      * @return AbstractInstruction[]
      * @throws \InvalidArgumentException
      */
-    private function analyseProject(string $target_project, LoggerInterface $logger = null)
+    private function analyseProject(string $target_project, LoggerInterface $logger): array
     {
         $this->io->text(sprintf('<info>Started analysing %s</info>', $target_project));
 
-        if ($logger !== null) {
-            $this->project_analyzer->setLogger($logger);
-        }
+        $this->project_analyzer->setLogger($logger);
         $this->project_analyzer->addAnalyzer(new DynamicAnalyzer($logger));
         $this->project_analyzer->addAnalyzer(new StaticAnalyzer());
 
@@ -241,7 +243,7 @@ class Tool extends Command
             $this->io->text('<info>Applying generated instructions</info>');
         }
         if ($show_diff) {
-            $this->showDiffs();
+            $this->enableDiffOutput();
         }
         $this->code_editor->setInstructions($instructions);
         $this->code_editor->applyInstructions($target_project, $overwrite_files);

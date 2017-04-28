@@ -13,7 +13,7 @@ use Symfony\Component\Console\Application;
 // TODO - Might refactor to single command application:
 // (http://symfony.com/doc/current/components/console/single_command_tool.html)
 
-$application  = new Application('Type-inference-tool');
+$application  = new Application(Tool::NAME);
 $tool_command = new Tool(new ProjectAnalyzer(), new CodeEditor());
 
 $application->setDefaultCommand($tool_command->getName());

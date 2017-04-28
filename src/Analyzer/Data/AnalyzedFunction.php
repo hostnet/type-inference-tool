@@ -113,6 +113,11 @@ class AnalyzedFunction
         return $this->collected_returns;
     }
 
+    /**
+     * Sets the class in which this function is declared.
+     *
+     * @param AnalyzedClass $class
+     */
     public function setClass(AnalyzedClass $class)
     {
         $this->class = $class;

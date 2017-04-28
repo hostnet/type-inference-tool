@@ -24,8 +24,9 @@ class DynamicAnalyzerTest extends TestCase
 
     protected function setUp()
     {
-        $this->analyzer            = new DynamicAnalyzer();
-        $this->example_project_dir = dirname(__DIR__, 2) . '/Fixtures/ExampleDynamicAnalysis/Example-Project';
+        // TODO - Write tests
+        // $this->analyzer            = new DynamicAnalyzer();
+        // $this->example_project_dir = dirname(__DIR__, 2) . '/Fixtures/ExampleDynamicAnalysis/Example-Project';
     }
 
     // TODO - TearDown: remove output files (Xdebug trace + generated bootstrap)
@@ -34,8 +35,5 @@ class DynamicAnalyzerTest extends TestCase
     {
         self::markTestSkipped('TODO');
         $result = $this->analyzer->collectAnalyzedFunctions($this->example_project_dir);
-//
-//        self::assertEmpty($result);
-        self::assertTrue(true);
     }
 }

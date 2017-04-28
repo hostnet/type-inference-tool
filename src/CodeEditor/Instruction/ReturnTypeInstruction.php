@@ -59,7 +59,9 @@ final class ReturnTypeInstruction extends AbstractInstruction
             $file_to_modify = $this->retrieveFileToModify($target_project);
             $updated_file   = $this->insertReturnType($file_to_modify);
             $this->saveFile($updated_file, $diff_handler, $overwrite_file);
-        } catch (\Exception $e) {
+        } catch (\RuntimeException $e) {
+            return false;
+        } catch (\InvalidArgumentException $e) {
             return false;
         }
         return true;

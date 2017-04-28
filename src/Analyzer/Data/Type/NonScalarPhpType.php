@@ -13,7 +13,7 @@ use Hostnet\Component\TypeInference\Analyzer\Data\AnalyzedClass;
 final class NonScalarPhpType extends AnalyzedClass implements PhpTypeInterface
 {
     /**
-     * @inheritdoc
+     * {@inheritdoc}
      */
     public function getName(): string
     {

@@ -105,8 +105,9 @@ class TraceParser
                 $param = $this->extractProphecy($param);
             });
 
+            // TODO - Remove magic numbers
             return new EntryRecord(
-                (int) $record_fields[1]/* TODO - Remove magic numbers */,
+                (int) $record_fields[1],
                 $record_fields[EntryRecord::FUNCTION_NAME_INDEX],
                 ((int) $record_fields[6]) === 1,
                 $record_fields[8],
@@ -124,7 +125,7 @@ class TraceParser
      * @param string $type
      * @return string
      */
-    private function extractProphecy(string $type)
+    private function extractProphecy(string $type): string
     {
         if (strpos($type, 'Double\\') === false) {
             return $type;

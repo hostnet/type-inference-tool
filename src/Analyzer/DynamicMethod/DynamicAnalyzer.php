@@ -23,6 +23,7 @@ use Psr\Log\NullLogger;
 use Symfony\Component\Filesystem\Exception\FileNotFoundException;
 use Symfony\Component\Filesystem\Exception\IOException;
 use Symfony\Component\Finder\Finder;
+use Symfony\Component\Stopwatch\Stopwatch;
 
 /**
  * Uses dynamic analysis to collect argument- and return types from functions calls
@@ -30,7 +31,11 @@ use Symfony\Component\Finder\Finder;
  */
 final class DynamicAnalyzer implements FunctionAnalyzerInterface
 {
-    const LOG_PREFIX = 'DYNAMIC_ANALYSIS: ';
+    /**
+     * Prefix used for logs outputted by this class. Name used
+     * by stopwatch for this class.
+     */
+    const TIMER_LOG_NAME = 'DYNAMIC_ANALYSIS';
 
     /**
      * @var string
@@ -61,8 +66,10 @@ final class DynamicAnalyzer implements FunctionAnalyzerInterface
      */
     public function collectAnalyzedFunctions(string $target_project): array
     {
-        $start_time = microtime(true);
-        $this->logger->info(self::LOG_PREFIX . 'Started dynamic analysis');
+        $stopwatch = new Stopwatch();
+        $stopwatch->start(self::TIMER_LOG_NAME);
+
+        $this->logger->info(self::TIMER_LOG_NAME . ': Started dynamic analysis');
         $this->target_project = $target_project;
 
         $tracer = new Tracer($target_project . Tracer::OUTPUT_FOLDER_NAME, $target_project, dirname(__DIR__, 3));
@@ -74,30 +81,37 @@ final class DynamicAnalyzer implements FunctionAnalyzerInterface
         $entries = $this->filterEntriesToTargetProject($records[TraceParser::ENTRY_RECORD_NAME]);
         $returns = $this->filterReturnsToTargetProject($records[TraceParser::RETURN_RECORD_NAME], $entries);
 
-        $analysed_functions = $this->mapRecordsToAnalysedFunctions(array_merge($entries, $returns));
-        $this->logger->info(self::LOG_PREFIX . 'Finished dynamic analysis ({time}s)', [
-            'time' => round(microtime(true) - $start_time, 2)
+        $analyzed_functions = $this->mapRecordsToAnalysedFunctions(array_merge($entries, $returns));
+        $this->logger->info(self::TIMER_LOG_NAME . ': Finished dynamic analysis ({time}s)', [
+            'time' => round($stopwatch->stop(self::TIMER_LOG_NAME)->getDuration() / 1000, 2)
         ]);
-        return $analysed_functions;
+        return $analyzed_functions;
     }
 
     /**
+     * Takes an array of AbstractRecords and creates AnalyzedFunctions.
+     * In case a record is an EntryRecord, a new AnalyzedCall is added
+     * to the created AnalyzedFunction. In case the record is a ReturnRecord,
+     * an AnalyzedReturn is added to the AnalyzedFunction. This results in a
+     * collection containing all analyzed functions with all calls that have
+     * been made to that function and types that have been returned.
+     *
      * @param AbstractRecord[] $records
      * @return AnalyzedFunction[]
      * @throws \InvalidArgumentException
      */
     private function mapRecordsToAnalysedFunctions(array $records): array
     {
-        $collection      = new AnalyzedFunctionCollection();
-        $function_nr_map = [];
+        $collection          = new AnalyzedFunctionCollection();
+        $function_number_map = [];
         foreach ($records as $record) {
             if ($record instanceof EntryRecord) {
-                $function_nr_map[$record->getFunctionNr()] = $record->getFunctionName();
+                $function_number_map[$record->getNumber()] = $record->getFunctionName();
             }
         }
 
         foreach ($records as $record) {
-            $function_name      = $function_nr_map[$record->getFunctionNr()];
+            $function_name      = $function_number_map[$record->getNumber()];
             list($namespace,
                 $class_name,
                 $function_name) = TracerPhpTypeMapper::extractTraceFunctionName($function_name);
@@ -147,7 +161,8 @@ final class DynamicAnalyzer implements FunctionAnalyzerInterface
                 $class_name,
                 $function_name) = TracerPhpTypeMapper::extractTraceFunctionName($entry->getFunctionName());
 
-            if ($namespace === null || $function_name === TracerPhpTypeMapper::FUNCTION_CLOSURE) {
+            if ($namespace === TracerPhpTypeMapper::NAMESPACE_GLOBAL
+                || $function_name === TracerPhpTypeMapper::FUNCTION_CLOSURE) {
                 continue;
             }
 
@@ -178,12 +193,12 @@ final class DynamicAnalyzer implements FunctionAnalyzerInterface
         $entries          = [];
 
         foreach ($functions_to_match as $entry) {
-            $entries[$entry->getFunctionNr()] = $entry->getFunctionDeclarationFile();
+            $entries[$entry->getNumber()] = $entry->getFunctionDeclarationFile();
         }
 
         foreach ($returns as $return) {
-            if (isset($entries[$return->getFunctionNr()])) {
-                $return->setFunctionDeclarationFile($entries[$return->getFunctionNr()]);
+            if (isset($entries[$return->getNumber()])) {
+                $return->setFunctionDeclarationFile($entries[$return->getNumber()]);
                 $matching_returns[] = $return;
             }
         }
@@ -198,9 +213,9 @@ final class DynamicAnalyzer implements FunctionAnalyzerInterface
      * @param string $class_name
      * @param string $function_name
      * @return CodeEditorFile
-     * @throws FileNotFoundException
-     * @throws \RuntimeException
-     * @throws \InvalidArgumentException
+     * @throws FileNotFoundException When function not defined in target project
+     * @throws \RuntimeException When failing to retrieve the contents of a file
+     * @throws \InvalidArgumentException When searching in invalid directory
      */
     private function getDefinitionFile(string $namespace, string $class_name, string $function_name): CodeEditorFile
     {

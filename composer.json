@@ -9,7 +9,8 @@
         "sebastian/diff":                        "^1.4",
         "symfony/console":                       "^3.2",
         "symfony/filesystem":                    "^3.2",
-        "symfony/finder":                        "^3.2"
+        "symfony/finder":                        "^3.2",
+        "symfony/stopwatch":                     "^3.2"
     },
     "require-dev": {
         "hostnet/phpcs-tool": "^5.0.0",

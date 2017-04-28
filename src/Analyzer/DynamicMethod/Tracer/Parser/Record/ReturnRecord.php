@@ -17,12 +17,12 @@ final class ReturnRecord extends AbstractRecord
     private $return_value;
 
     /**
-     * @param int $function_nr
+     * @param int $number
      * @param string $return_value
      */
-    public function __construct(int $function_nr, string $return_value)
+    public function __construct(int $number, string $return_value)
     {
-        parent::__construct($function_nr);
+        parent::__construct($number);
         $this->return_value = $return_value;
     }
 

@@ -82,7 +82,7 @@ class TracerPhpTypeMapper
         $class_name    = ($namespace === false ? '\\' : '') . $matches[4][0];
 
         return [
-            $namespace !== false ? $namespace : null,
+            $namespace !== false ? $namespace : '',
             $class_name,
             $function_name !== '' ? $function_name : null
         ];
