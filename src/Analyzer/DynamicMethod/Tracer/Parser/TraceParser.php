@@ -5,6 +5,7 @@ declare(strict_types = 1);
  */
 namespace Hostnet\Component\TypeInference\Analyzer\DynamicMethod\Tracer\Parser;
 
+use Hostnet\Component\TypeInference\Analyzer\DynamicMethod\Tracer\Parser\Exception\TraceNotFoundException;
 use Hostnet\Component\TypeInference\Analyzer\DynamicMethod\Tracer\Parser\Record\AbstractRecord;
 use Hostnet\Component\TypeInference\Analyzer\DynamicMethod\Tracer\Parser\Record\EntryRecord;
 use Hostnet\Component\TypeInference\Analyzer\DynamicMethod\Tracer\Parser\Record\ExitRecord;
@@ -42,13 +43,13 @@ class TraceParser
      * objects.
      *
      * @return AbstractRecord[] ['entries' => EntryRecord[], 'returns' => ReturnRecords[]]
-     * @throws \InvalidArgumentException
+     * @throws TraceNotFoundException
      */
     public function parse(): array
     {
         $file_system = new Filesystem();
         if (!$file_system->exists($this->input_trace_file)) {
-            throw new \InvalidArgumentException(sprintf('Trace not found: %s', $this->input_trace_file));
+            throw new TraceNotFoundException(sprintf('Trace not found: %s', $this->input_trace_file));
         }
 
         return $this->generateRecordList();

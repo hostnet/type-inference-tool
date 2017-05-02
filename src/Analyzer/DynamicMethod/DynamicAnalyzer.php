@@ -10,6 +10,7 @@ use Hostnet\Component\TypeInference\Analyzer\Data\AnalyzedClass;
 use Hostnet\Component\TypeInference\Analyzer\Data\AnalyzedFunction;
 use Hostnet\Component\TypeInference\Analyzer\Data\AnalyzedFunctionCollection;
 use Hostnet\Component\TypeInference\Analyzer\Data\AnalyzedReturn;
+use Hostnet\Component\TypeInference\Analyzer\DynamicMethod\Tracer\Parser\Exception\TraceNotFoundException;
 use Hostnet\Component\TypeInference\Analyzer\DynamicMethod\Tracer\Parser\Mapper\TracerPhpTypeMapper;
 use Hostnet\Component\TypeInference\Analyzer\DynamicMethod\Tracer\Parser\Record\AbstractRecord;
 use Hostnet\Component\TypeInference\Analyzer\DynamicMethod\Tracer\Parser\Record\EntryRecord;
@@ -60,8 +61,9 @@ final class DynamicAnalyzer implements FunctionAnalyzerInterface
      *
      * @param string $target_project
      * @return AnalyzedFunction[]
-     * @throws \RuntimeException
+     * @throws TraceNotFoundException
      * @throws \InvalidArgumentException
+     * @throws \RuntimeException
      * @throws IOException
      */
     public function collectAnalyzedFunctions(string $target_project): array

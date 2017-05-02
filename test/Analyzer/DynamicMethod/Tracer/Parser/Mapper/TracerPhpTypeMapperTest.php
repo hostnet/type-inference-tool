@@ -39,11 +39,14 @@ class TracerPhpTypeMapperTest extends TestCase
             ['Hostnet\\Example\\SomeClass::SomeFunction', ['Hostnet\\Example', 'SomeClass', 'SomeFunction']],
             ['Hostnet\\Example\\SomeClass->ExampleProject\\{closure}', ['Hostnet\\Example', 'SomeClass', '{closure}']],
             ['Hostnet\\Example\\SomeClass', ['Hostnet\\Example', 'SomeClass', null]],
-            ['SomeClass->__construct', ['', '\\SomeClass', '__construct']],
-            ['class ArrayObject', ['', '\\ArrayObject', null]],
+            ['SomeClass->__construct', [TracerPhpTypeMapper::NAMESPACE_GLOBAL, '\\SomeClass', '__construct']],
+            ['class ArrayObject', [TracerPhpTypeMapper::NAMESPACE_GLOBAL, '\\ArrayObject', null]],
             ['class Namespace\\Classname', ['Namespace', 'Classname', null]],
             ['class ExampleProject\\SomeObject->SomeFunction', ['ExampleProject', 'SomeObject', 'SomeFunction']],
-            ['Twig_Loader_Filesystem->__construct', ['', '\Twig_Loader_Filesystem', '__construct']],
+            [
+                'Twig_Loader_Filesystem->__construct',
+                [TracerPhpTypeMapper::NAMESPACE_GLOBAL, '\Twig_Loader_Filesystem', '__construct']
+            ],
             ['???', [null, TracerPhpTypeMapper::TYPE_UNKNOWN, null]]
         ];
     }

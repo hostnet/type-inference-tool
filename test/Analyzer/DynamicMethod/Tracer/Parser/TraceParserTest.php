@@ -5,6 +5,7 @@ declare(strict_types = 1);
  */
 namespace Hostnet\Component\TypeInference\Analyzer\DynamicMethod\Tracer\Parser;
 
+use Hostnet\Component\TypeInference\Analyzer\DynamicMethod\Tracer\Parser\Exception\TraceNotFoundException;
 use Hostnet\Component\TypeInference\Analyzer\DynamicMethod\Tracer\Parser\Record\EntryRecord;
 use Hostnet\Component\TypeInference\Analyzer\DynamicMethod\Tracer\Parser\Record\ReturnRecord;
 use PHPUnit\Framework\TestCase;
@@ -51,7 +52,7 @@ class TraceParserTest extends TestCase
 
     public function testParseNonExistentTraceFile()
     {
-        $this->expectException(\InvalidArgumentException::class);
+        $this->expectException(TraceNotFoundException::class);
         $this->trace_parser = new TraceParser('some/invalid/path/non_existent.xt');
         $this->trace_parser->parse();
     }

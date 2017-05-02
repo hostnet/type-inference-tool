@@ -64,7 +64,7 @@ class ToolTest extends TestCase
 
         $this->command        = $this->application->find(Tool::EXECUTE_COMMAND);
         $this->command_tester = new CommandTester($this->command);
-        $this->log_dir        = $log_dir = dirname(__DIR__) . '/Fixtures/output/Logs/logs.log';
+        $this->log_dir        = __DIR__ . '/output/logs.log';
     }
 
     protected function tearDown()

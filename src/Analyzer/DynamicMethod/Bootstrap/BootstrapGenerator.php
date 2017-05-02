@@ -42,7 +42,7 @@ class BootstrapGenerator
 
 xdebug_start_trace('%s', 2);
 
-require_once '%s%s';
+require_once '%s/%s';
 PHP;
 
         $contents = sprintf(
@@ -67,7 +67,7 @@ PHP;
      */
     private function retrieveBootstrapLocation(string $target_project_directory): string
     {
-        $default_bootstrap_location = '/vendor/autoload.php';
+        $default_bootstrap_location = 'vendor/autoload.php';
         if (!$this->file_system->exists($target_project_directory . '/phpunit.xml.dist')) {
             // TODO - Could also be phpunit.xml
             return $default_bootstrap_location;
@@ -78,6 +78,6 @@ PHP;
         $document->loadXML($phpunit_config);
         $bootstrap_location = $document->getElementsByTagName('phpunit')->item(0)->getAttribute('bootstrap');
 
-        return '/' . $bootstrap_location;
+        return $bootstrap_location;
     }
 }

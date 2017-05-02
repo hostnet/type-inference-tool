@@ -14,6 +14,11 @@ use Symfony\Component\Filesystem\Filesystem;
 class BootstrapGeneratorTest extends TestCase
 {
     /**
+     * @var Filesystem
+     */
+    private $file_system;
+
+    /**
      * @var string
      */
     private $fixtures;
@@ -25,11 +30,15 @@ class BootstrapGeneratorTest extends TestCase
 
     protected function setUp()
     {
-        $this->fixtures   = dirname(__DIR__, 3) . '/Fixtures';
-        $this->output_dir = $this->fixtures . '/output/';
+        $this->file_system = new Filesystem();
+        $this->fixtures    = dirname(__DIR__, 3) . '/Fixtures';
+        $this->output_dir  = __dir__ . '/output/';
+        $this->file_system->remove($this->output_dir);
+    }
 
-        $file_system = new Filesystem();
-        $file_system->remove($this->output_dir);
+    protected function tearDown()
+    {
+        $this->file_system->remove($this->output_dir);
     }
 
     /**

@@ -65,7 +65,7 @@ class CodeEditor
     }
 
     /**
-     * Sets an callback so the instructions can output diffs
+     * Sets a callback so the instructions can output diffs
      * to the console to show the modifications to a file.
      *
      * @param callable $handler
