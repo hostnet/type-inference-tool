@@ -11,7 +11,6 @@ use Hostnet\Component\TypeInference\Analyzer\Data\AnalyzedFunction;
 use Hostnet\Component\TypeInference\Analyzer\Data\Type\NonScalarPhpType;
 use Hostnet\Component\TypeInference\Analyzer\Data\Type\ScalarPhpType;
 use PHPUnit\Framework\TestCase;
-use Symfony\Component\Filesystem\Filesystem;
 
 /**
  * @covers \Hostnet\Component\TypeInference\Analyzer\DynamicMethod\DynamicAnalyzer
@@ -32,12 +31,6 @@ class DynamicAnalyzerTest extends TestCase
     {
          $this->analyzer            = new DynamicAnalyzer();
          $this->example_project_dir = dirname(__DIR__, 2) . '/Fixtures/ExampleDynamicAnalysis/Example-Project-1';
-    }
-
-    protected function tearDown()
-    {
-        $file_system = new Filesystem();
-        $file_system->remove($this->example_project_dir . '/output');
     }
 
     public function testDynamicAnalyzerGeneratesAnalyzedFunctions()

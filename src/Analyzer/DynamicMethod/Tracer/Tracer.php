@@ -44,6 +44,11 @@ class Tracer
     private $inferrer_directory;
 
     /**
+     * @var string
+     */
+    private $output_trace_name;
+
+    /**
      * @param string $output_dir
      * @param string $target_project_directory
      * @param string $inferrer_directory
@@ -61,6 +66,8 @@ class Tracer
         $this->target_project_directory = $target_project_directory;
         $this->inferrer_directory       = $inferrer_directory;
         $this->test_folder              = '/' . $test_folder;
+        $this->output_trace_name        = uniqid(BootstrapGenerator::TRACE_FILE_NAME, false);
+        $this->output_bootstrap_name    = uniqid(self::OUTPUT_BOOTSTRAP_NAME, false);
     }
 
     /**
@@ -71,7 +78,6 @@ class Tracer
      */
     public function generateTrace()
     {
-        // TODO - Delete generated files when they're not necessary anymore
         $this->createBootstrapFile($this->output_directory);
         exec($this->getExecuteCommand());
     }
@@ -89,7 +95,8 @@ class Tracer
         $bootstrap_generator->generateBootstrap(
             $this->target_project_directory,
             $output_directory,
-            self::OUTPUT_BOOTSTRAP_NAME
+            $this->output_bootstrap_name,
+            $this->output_trace_name
         );
     }
 
@@ -125,7 +132,7 @@ class Tracer
         return sprintf(
             '%s --bootstrap %s %s%s %s',
             $project_dir . $php_unit_folder,
-            $this->output_directory . self::OUTPUT_BOOTSTRAP_NAME . '.php',
+            $this->getFullOutputBootstrapPath(),
             $this->target_project_directory,
             $this->test_folder,
             $this->getSettings()
@@ -137,6 +144,14 @@ class Tracer
      */
     public function getFullOutputTracePath(): string
     {
-        return $this->output_directory . BootstrapGenerator::TRACE_FILE_NAME . '.xt';
+        return $this->output_directory . $this->output_trace_name . '.xt';
+    }
+
+    /**
+     * @return string
+     */
+    public function getFullOutputBootstrapPath(): string
+    {
+        return $this->output_directory . $this->output_bootstrap_name . '.php';
     }
 }

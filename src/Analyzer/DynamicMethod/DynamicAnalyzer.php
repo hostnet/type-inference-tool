@@ -23,6 +23,7 @@ use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 use Symfony\Component\Filesystem\Exception\FileNotFoundException;
 use Symfony\Component\Filesystem\Exception\IOException;
+use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Finder\Finder;
 use Symfony\Component\Stopwatch\Stopwatch;
 
@@ -79,6 +80,10 @@ final class DynamicAnalyzer implements FunctionAnalyzerInterface
 
         $parser  = new TraceParser($tracer->getFullOutputTracePath());
         $records = $parser->parse();
+
+        $file_system = new Filesystem();
+        $file_system->remove($tracer->getFullOutputTracePath());
+        $file_system->remove($tracer->getFullOutputBootstrapPath());
 
         $entries = $this->filterEntriesToTargetProject($records[TraceParser::ENTRY_RECORD_NAME]);
         $returns = $this->filterReturnsToTargetProject($records[TraceParser::RETURN_RECORD_NAME], $entries);

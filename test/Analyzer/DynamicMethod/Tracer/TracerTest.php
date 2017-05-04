@@ -44,7 +44,7 @@ class TracerTest extends TestCase
         $tracer         = new Tracer($this->output_directory, $target_project, $inferrer_dir);
         $tracer->generateTrace();
 
-        self::assertFileExists($this->output_directory . Tracer::OUTPUT_BOOTSTRAP_NAME . '.php');
+        self::assertFileExists($tracer->getFullOutputBootstrapPath());
         self::assertFileExists($tracer->getFullOutputTracePath());
     }
 }

@@ -33,10 +33,15 @@ class BootstrapGenerator
      * @param string $target_project_directory
      * @param string $output_dir
      * @param string $output_file
+     * @param string $trace_file_name
      * @throws IOException
      */
-    public function generateBootstrap(string $target_project_directory, string $output_dir, string $output_file)
-    {
+    public function generateBootstrap(
+        string $target_project_directory,
+        string $output_dir,
+        string $output_file,
+        string $trace_file_name = self::TRACE_FILE_NAME
+    ) {
         $bootstrap = <<<'PHP'
 <?php
 
@@ -47,7 +52,7 @@ PHP;
 
         $contents = sprintf(
             $bootstrap,
-            $output_dir . self::TRACE_FILE_NAME,
+            $output_dir . $trace_file_name,
             $target_project_directory,
             $this->retrieveBootstrapLocation($target_project_directory)
         );

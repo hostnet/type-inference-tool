@@ -45,7 +45,7 @@ final class NonScalarPhpType extends AnalyzedClass implements PhpTypeInterface
             return AnalyzedClass::matchAnalyzedClasses($reduced, $current);
         });
 
-        if (count($common_types) === 1) {
+        if ($common_types !== null && count($common_types) === 1) {
             return NonScalarPhpType::fromAnalyzedClass($common_types[0]);
         }
 
