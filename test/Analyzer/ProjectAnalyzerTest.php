@@ -13,6 +13,8 @@ use Hostnet\Component\TypeInference\Analyzer\Data\Type\NonScalarPhpType;
 use Hostnet\Component\TypeInference\Analyzer\Data\Type\PhpTypeInterface;
 use Hostnet\Component\TypeInference\Analyzer\Data\Type\ScalarPhpType;
 use Hostnet\Component\TypeInference\Analyzer\Data\Type\UnresolvablePhpType;
+use Hostnet\Component\TypeInference\CodeEditor\Instruction\ReturnTypeInstruction;
+use Hostnet\Component\TypeInference\CodeEditor\Instruction\TypeHintInstruction;
 use Monolog\Handler\StreamHandler;
 use Monolog\Logger;
 use Monolog\Processor\PsrLogMessageProcessor;
@@ -100,6 +102,112 @@ class ProjectAnalyzerTest extends TestCase
         self::assertCount($generated_instructions, $instructions);
     }
 
+    public function testGenerateTypeHintInstructionForFunctionWithParentDefinitionShouldModifyParent()
+    {
+        $type_int          = new ScalarPhpType(ScalarPhpType::TYPE_INT);
+        $interface         = new AnalyzedClass('Namespace', 'SomeClassInterface', 'file2.php', null, [], ['foobar']);
+        $analyzed_class    = new AnalyzedClass('Namespace', 'SomeClass', '/file.php', null, [$interface], ['foobar']);
+        $analyzed_function = new AnalyzedFunction($analyzed_class, 'foobar');
+
+        $analyzed_function->addCollectedArguments(new AnalyzedCall([$type_int]));
+
+        $this->addFunctionAnalyserMock([$analyzed_function]);
+        $instructions = $this->project_analyzer->analyse($this->target_project);
+
+        $expected_parent_instruction = new TypeHintInstruction($interface, 'foobar', 0, $type_int);
+        $expected_class_instruction  = new TypeHintInstruction($analyzed_class, 'foobar', 0, $type_int);
+
+        self::assertCount(2, $instructions);
+        self::assertContains($expected_parent_instruction, $instructions, false, false, false);
+        self::assertContains($expected_class_instruction, $instructions, false, false, false);
+    }
+
+    public function testDoNotGenerateReturnTypeInstructionsWhenTypeNotSameAsParent()
+    {
+        $interface        = new AnalyzedClass('Namespace', 'SomeClassInterface', 'file1.php', null, [], ['foobar']);
+        $interface_method = new AnalyzedFunction($interface, 'foobar', ScalarPhpType::TYPE_STRING, true);
+
+        $child_class        = new AnalyzedClass('Namespace', 'Class1', 'file1.php', null, [$interface], ['foobar']);
+        $child_class_method = new AnalyzedFunction($child_class, 'foobar');
+        $child_class_method->addCollectedReturn(new AnalyzedReturn(new ScalarPhpType(ScalarPhpType::TYPE_BOOL)));
+
+        $this->addFunctionAnalyserMock([$interface_method, $child_class_method]);
+        $instructions = $this->project_analyzer->analyse($this->target_project);
+
+        self::assertEmpty($instructions);
+    }
+
+    public function testDoNotGenerateParentInstructionWhenChildrenReturnDifferentReturnTypes()
+    {
+        $type_bool   = new ScalarPhpType(ScalarPhpType::TYPE_BOOL);
+        $type_string = new ScalarPhpType(ScalarPhpType::TYPE_STRING);
+
+        $interface        = new AnalyzedClass('Namespace', 'SomeClassInterface', 'file1.php', null, [], ['foobar']);
+        $interface_method = new AnalyzedFunction($interface, 'foobar');
+
+        $child_class1        = new AnalyzedClass('Namespace', 'Class1', 'file1.php', null, [$interface], ['foobar']);
+        $child_class1_method = new AnalyzedFunction($child_class1, 'foobar');
+        $child_class1_method->addCollectedReturn(new AnalyzedReturn($type_bool));
+
+        $child_class2        = new AnalyzedClass('Namespace', 'Class2', 'file2.php', null, [$interface], ['foobar']);
+        $child_class2_method = new AnalyzedFunction($child_class2, 'foobar');
+        $child_class2_method->addCollectedReturn(new AnalyzedReturn($type_string));
+
+        $this->addFunctionAnalyserMock([$interface_method, $child_class1_method, $child_class2_method]);
+        $instructions = $this->project_analyzer->analyse($this->target_project);
+
+        $expected_instruction_1 = new ReturnTypeInstruction($child_class1, 'foobar', $type_bool);
+        $expected_instruction_2 = new ReturnTypeInstruction($child_class2, 'foobar', $type_string);
+
+        self::assertCount(2, $instructions);
+        self::assertContains($expected_instruction_1, $instructions, false, false, false);
+        self::assertContains($expected_instruction_2, $instructions, false, false, false);
+    }
+
+    public function testWhenParentHasNoReturnTypeOnlyChildrenWithResolvableReturnTypeShouldHaveDeclaration()
+    {
+        $interface        = new AnalyzedClass('Namespace', 'FooInterface', '/file0.php', null, [], ['bar']);
+        $interface_method = new AnalyzedFunction($interface, 'bar');
+
+        $child_1        = new AnalyzedClass('Namespace', 'FooImpl1', '/file1.php', null, [$interface], ['bar']);
+        $child_1_method = new AnalyzedFunction($child_1, 'bar');
+        $child_1_method->addCollectedReturn(new AnalyzedReturn(new ScalarPhpType(ScalarPhpType::TYPE_STRING)));
+
+        $child_2        = new AnalyzedClass('Namespace', 'FooImpl2', '/file2.php', null, [$interface], ['bar']);
+        $child_2_method = new AnalyzedFunction($child_2, 'bar');
+        $child_2_method->addCollectedReturn(new AnalyzedReturn(new ScalarPhpType(ScalarPhpType::TYPE_STRING)));
+        $child_2_method->addCollectedReturn(new AnalyzedReturn(new ScalarPhpType(ScalarPhpType::TYPE_INT)));
+        $child_2_method->addCollectedArguments(new AnalyzedCall([new ScalarPhpType(ScalarPhpType::TYPE_FLOAT)]));
+
+        $this->addFunctionAnalyserMock([$interface_method, $child_1_method, $child_2_method]);
+        $instructions = $this->project_analyzer->analyse($this->target_project);
+
+         self::assertCount(3, $instructions);
+         self::assertSame('Namespace\\FooImpl1', $instructions[0]->getTargetClass()->getFqcn());
+    }
+
+    public function testGenerateReturnTypeInstructionsWhenReturnTypeSameAsParent()
+    {
+        $type_string = new ScalarPhpType(ScalarPhpType::TYPE_STRING);
+
+        $interface        = new AnalyzedClass('Namespace', 'SomeClassInterface', 'file1.php', null, [], ['foobar']);
+        $interface_method = new AnalyzedFunction($interface, 'foobar', ScalarPhpType::TYPE_STRING);
+
+        $child_class        = new AnalyzedClass('Namespace', 'SomeClass', 'file2.php', null, [$interface], ['foobar']);
+        $child_class_method = new AnalyzedFunction($child_class, 'foobar');
+        $child_class_method->addCollectedReturn(new AnalyzedReturn($type_string));
+
+        $this->addFunctionAnalyserMock([$interface_method, $child_class_method]);
+        $instructions = $this->project_analyzer->analyse($this->target_project);
+
+        $expected_interface_instruction   = new ReturnTypeInstruction($interface, 'foobar', $type_string);
+        $expected_child_class_instruction = new ReturnTypeInstruction($child_class, 'foobar', $type_string);
+
+        self::assertCount(2, $instructions);
+        self::assertContains($expected_interface_instruction, $instructions, false, false, false);
+        self::assertContains($expected_child_class_instruction, $instructions, false, false, false);
+    }
+
     public function testAnalyseFunctionWithLoggingEnabledShouldSaveLogs()
     {
         $fs      = new Filesystem();
@@ -140,7 +248,7 @@ class ProjectAnalyzerTest extends TestCase
         self::assertContains('IMMUTABLE_FUNCTION', $logs);
     }
 
-    public function analyzedFunctionsReturnTypeDataProvider()
+    public function analyzedFunctionsReturnTypeDataProvider(): array
     {
         $type_int          = new ScalarPhpType(ScalarPhpType::TYPE_INT);
         $type_float        = new ScalarPhpType(ScalarPhpType::TYPE_FLOAT);
@@ -177,7 +285,7 @@ class ProjectAnalyzerTest extends TestCase
         ];
     }
 
-    public function analyzedFunctionsTypeHintDataProvider()
+    public function analyzedFunctionsTypeHintDataProvider(): array
     {
         $type_bool         = new ScalarPhpType(ScalarPhpType::TYPE_BOOL);
         $type_int          = new ScalarPhpType(ScalarPhpType::TYPE_INT);

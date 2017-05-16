@@ -69,8 +69,9 @@ abstract class AbstractInstruction
             $file_contents = $file->getContents();
 
             if (strpos($file_contents, sprintf('function %s(', $this->target_function_name)) !== false
-                && strpos($file_contents, sprintf('class %s', $this->target_class->getClassName())) !== false
                 && strpos($file_contents, sprintf('namespace %s;', $this->target_class->getNamespace())) !== false
+                && (strpos($file_contents, sprintf('class %s', $this->target_class->getClassName())) !== false
+                    || strpos($file_contents, sprintf('interface %s', $this->target_class->getClassName())) !== false)
             ) {
                 return new CodeEditorFile($file->getRealPath(), $file_contents);
             }
@@ -109,7 +110,7 @@ abstract class AbstractInstruction
     /**
      * @return string
      */
-    protected function getTargetFunctionName(): string
+    public function getTargetFunctionName(): string
     {
         return $this->target_function_name;
     }

@@ -6,6 +6,8 @@ declare(strict_types = 1);
 namespace Hostnet\Component\TypeInference\Analyzer\Data;
 
 use Hostnet\Component\TypeInference\Analyzer\Data\Type\NonScalarPhpType;
+use Hostnet\Component\TypeInference\Analyzer\Data\Type\ScalarPhpType;
+use Hostnet\Component\TypeInference\CodeEditor\Instruction\ReturnTypeInstruction;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -61,5 +63,49 @@ class AnalyzedFunctionCollectionTest extends TestCase
         }
 
         self::assertCount(2, $collection->getAll());
+    }
+
+    public function testAddAllShouldMergeAnalyzedFunctions()
+    {
+        $collection = new AnalyzedFunctionCollection();
+
+        $extended             = new AnalyzedClass('Namespace', 'AbstractClassName', 'file2.php');
+        $implemented          = new AnalyzedClass('Namespace', 'ClassNameInterface', 'file3.php');
+        $analyzed_functions_0 = [new AnalyzedFunction(new AnalyzedClass('Namespace', 'ClassName'), 'foobar')];
+        $analyzed_functions_1 = [
+            new AnalyzedFunction(
+                new AnalyzedClass('Namespace', 'ClassName', 'file.php', $extended, [$implemented]),
+                'foobar'
+            )
+        ];
+        $expected             = [
+            new AnalyzedFunction(
+                new AnalyzedClass('Namespace', 'ClassName', 'file.php', $extended, [$implemented], ['foobar']),
+                'foobar'
+            )
+        ];
+
+        $collection->addAll($analyzed_functions_0);
+        $collection->addAll($analyzed_functions_1);
+        $results = $collection->getAll();
+
+        self::assertCount(1, $results);
+        self::assertEquals($expected, $results);
+    }
+
+    public function testApplyInstructionsShouldApplyInstructionsToAnalyzedFunctions()
+    {
+        $collection = new AnalyzedFunctionCollection();
+
+        $class    = new AnalyzedClass('Namespace', 'ClassName', 'file.php', null, [], ['foobar']);
+        $function = new AnalyzedFunction($class, 'foobar');
+        $collection->add($function);
+
+        $return_type = new ScalarPhpType(ScalarPhpType::TYPE_FLOAT);
+        $instruction = new ReturnTypeInstruction($class, 'foobar', $return_type);
+
+        $collection->applyInstructions([$instruction]);
+
+        self::assertSame($return_type->getName(), $collection->getAll()[0]->getDefinedReturnType());
     }
 }

@@ -22,6 +22,11 @@ class AnalyzedFunction
     private $function_name;
 
     /**
+     * @var string|null
+     */
+    private $defined_return_type;
+
+    /**
      * @var AnalyzedCall[]
      */
     private $collected_arguments = [];
@@ -32,13 +37,26 @@ class AnalyzedFunction
     private $collected_returns = [];
 
     /**
+     * @var bool
+     */
+    private $has_return_declaration;
+
+    /**
      * @param AnalyzedClass $class
      * @param string $function_name
+     * @param string|null $return_type
+     * @param bool $has_return_declaration
      */
-    public function __construct(AnalyzedClass $class, string $function_name)
-    {
-        $this->class         = $class;
-        $this->function_name = $function_name;
+    public function __construct(
+        AnalyzedClass $class,
+        string $function_name,
+        string $return_type = null,
+        bool $has_return_declaration = false
+    ) {
+        $this->class                  = $class;
+        $this->function_name          = $function_name;
+        $this->defined_return_type    = $return_type;
+        $this->has_return_declaration = $has_return_declaration;
     }
 
     /**
@@ -114,6 +132,22 @@ class AnalyzedFunction
     }
 
     /**
+     * @return string|null
+     */
+    public function getDefinedReturnType()
+    {
+        return $this->defined_return_type;
+    }
+
+    /**
+     * @param string $defined_return_type
+     */
+    public function setDefinedReturnType(string $defined_return_type)
+    {
+        $this->defined_return_type = $defined_return_type;
+    }
+
+    /**
      * Sets the class in which this function is declared.
      *
      * @param AnalyzedClass $class
@@ -121,5 +155,13 @@ class AnalyzedFunction
     public function setClass(AnalyzedClass $class)
     {
         $this->class = $class;
+    }
+
+    /**
+     * @return bool
+     */
+    public function hasReturnDeclaration(): bool
+    {
+        return $this->has_return_declaration;
     }
 }

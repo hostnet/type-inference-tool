@@ -3,7 +3,7 @@ declare(strict_types = 1);
 
 namespace ExampleProject\Component;
 
-class ExampleClass
+abstract class ExampleClass
 {
     public function singleLineFunc(): string
     {
@@ -16,4 +16,6 @@ class ExampleClass
     ): string {
         return $arg0 . $arg1;
     }
+
+    abstract public function abstractFunction($arg): bool;
 }

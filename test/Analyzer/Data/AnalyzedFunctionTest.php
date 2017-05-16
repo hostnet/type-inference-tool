@@ -47,6 +47,7 @@ class AnalyzedFunctionTest extends TestCase
         self::assertCount(2, $collected_calls);
         self::assertSame($arguments_0, $collected_calls[0]->getArguments());
         self::assertSame($arguments_1, $collected_calls[1]->getArguments());
+        self::assertFalse($this->analyzed_function->hasReturnDeclaration());
     }
 
     public function testAddCollectedReturnShouldAddReturns()
@@ -93,5 +94,12 @@ class AnalyzedFunctionTest extends TestCase
 
         $new_class = $this->analyzed_function->getClass();
         self::assertSame($class, $new_class);
+    }
+
+    public function testDefinedReturnTypeShouldBeUpdatedAfterBeingSet()
+    {
+        self::assertNull($this->analyzed_function->getDefinedReturnType());
+        $this->analyzed_function->setDefinedReturnType(ScalarPhpType::TYPE_FLOAT);
+        self::assertSame(ScalarPhpType::TYPE_FLOAT, $this->analyzed_function->getDefinedReturnType());
     }
 }

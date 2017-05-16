@@ -50,16 +50,21 @@ class ReturnTypeInstructionTest extends TestCase
     public function testInstructionShouldAddAReturnTypeToFunctionDeclaration()
     {
         $class       = new AnalyzedClass('ExampleProject\\Component', 'ExampleClass', '', null, [], []);
-        $return_type = new ScalarPhpType(ScalarPhpType::TYPE_STRING);
+        $type_string = new ScalarPhpType(ScalarPhpType::TYPE_STRING);
+        $type_bool   = new ScalarPhpType(ScalarPhpType::TYPE_BOOL);
 
-        $instruction_single_lined = new ReturnTypeInstruction($class, 'singleLineFunc', $return_type);
+        $instruction_single_lined = new ReturnTypeInstruction($class, 'singleLineFunc', $type_string);
         $result_1                 = $instruction_single_lined->apply($this->fixtures_dir . $this->target_project);
 
-        $instruction_multi_lined = new ReturnTypeInstruction($class, 'multiLineFunc', $return_type);
+        $instruction_multi_lined = new ReturnTypeInstruction($class, 'multiLineFunc', $type_string);
         $result_2                = $instruction_multi_lined->apply($this->fixtures_dir . $this->target_project);
+
+        $instruction_abstract = new ReturnTypeInstruction($class, 'abstractFunction', $type_bool);
+        $result_3             = $instruction_abstract->apply($this->fixtures_dir . $this->target_project);
 
         self::assertTrue($result_1);
         self::assertTrue($result_2);
+        self::assertTrue($result_3);
         self::assertFileEquals(
             $this->fixtures_dir . $this->project_expected . $this->example_class,
             $this->fixtures_dir . $this->target_project . $this->example_class
@@ -68,10 +73,13 @@ class ReturnTypeInstructionTest extends TestCase
 
     public function testInstructionShouldNotBeAppliedWhenTargetNotFound()
     {
+        $type_float = new ScalarPhpType(ScalarPhpType::TYPE_FLOAT);
+
         $non_existent_class = new AnalyzedClass('Does\\Not\\Exists', 'Invalid', '', null, [], []);
-        $instruction        = new ReturnTypeInstruction($non_existent_class, 'NonExistent', new ScalarPhpType('float'));
+        $instruction        = new ReturnTypeInstruction($non_existent_class, 'NonExistent', $type_float);
         $result             = $instruction->apply($this->fixtures_dir . $this->target_project);
 
+        self::assertSame($type_float, $instruction->getTargetReturnType());
         self::assertFalse($result);
         self::assertFileEquals(
             $this->fixtures_dir . $this->project_before . $this->example_class,

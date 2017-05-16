@@ -36,6 +36,9 @@ final class NonScalarPhpType extends AnalyzedClass implements PhpTypeInterface
             if ($return instanceof AnalyzedClass) {
                 $all_parent_types[] = $return->getParents();
             }
+            if ($return instanceof UnresolvablePhpType) {
+                return new UnresolvablePhpType(UnresolvablePhpType::INCONSISTENT);
+            }
         }
 
         $common_types = array_reduce($all_parent_types, function ($reduced, $current) {

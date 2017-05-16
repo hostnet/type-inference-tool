@@ -218,7 +218,7 @@ class Tool extends Command
 
         $this->project_analyzer->setLogger($logger);
         $this->project_analyzer->addAnalyzer(new DynamicAnalyzer($logger));
-        $this->project_analyzer->addAnalyzer(new StaticAnalyzer());
+        $this->project_analyzer->addAnalyzer(new StaticAnalyzer($logger));
 
         return $this->project_analyzer->analyse($target_project);
     }

@@ -50,11 +50,11 @@ class AnalyzedClass
      * @param string[] $methods
      */
     public function __construct(
-        string $namespace,
-        string $class_name,
-        string $full_path,
+        string $namespace = null,
+        string $class_name = null,
+        string $full_path = null,
         AnalyzedClass $extends = null,
-        array $implements,
+        array $implements = [],
         array $methods = []
     ) {
         $this->namespace  = $namespace;
@@ -113,11 +113,50 @@ class AnalyzedClass
     }
 
     /**
+     * Appends a function to the list with methods, if not present.
+     *
+     * @param string $function_name
+     */
+    public function addMethod(string $function_name)
+    {
+        if (!in_array($function_name, $this->methods, true)) {
+            $this->methods[] = $function_name;
+        }
+    }
+
+    /**
+     * Adds an AnalyzedFunction as an implemented class to the current class.
+     * If an AnalyzedFunction with the same fully qualified namespace already
+     * exists as an implemented class, it gets overwritten.
+     *
+     * @param AnalyzedClass $implement
+     */
+    public function addImplementedClass(AnalyzedClass $implement)
+    {
+        foreach ($this->implements as $i => $existing_implement) {
+            if ($existing_implement->getFqcn() === $implement->getFqcn()) {
+                $this->implements[$i] = $implement;
+                return;
+            }
+        }
+
+        $this->implements[] = $implement;
+    }
+
+    /**
      * @return string
      */
     public function getNamespace(): string
     {
         return $this->namespace;
+    }
+
+    /**
+     * @param string $namespace
+     */
+    public function setNamespace(string $namespace)
+    {
+        $this->namespace = $namespace;
     }
 
     /**
@@ -129,11 +168,27 @@ class AnalyzedClass
     }
 
     /**
-     * @return AnalyzedClass
+     * @param string $class_name
+     */
+    public function setClassName(string $class_name)
+    {
+        $this->class_name = $class_name;
+    }
+
+    /**
+     * @return AnalyzedClass|null
      */
     public function getExtends()
     {
         return $this->extends;
+    }
+
+    /**
+     * @param AnalyzedClass $extends
+     */
+    public function setExtends(AnalyzedClass $extends)
+    {
+        $this->extends = $extends;
     }
 
     /**
@@ -142,6 +197,14 @@ class AnalyzedClass
     public function getImplements(): array
     {
         return $this->implements;
+    }
+
+    /**
+     * @param AnalyzedClass[] $implements
+     */
+    public function setImplements(array $implements)
+    {
+        $this->implements = $implements;
     }
 
     /**
@@ -161,22 +224,18 @@ class AnalyzedClass
     }
 
     /**
-     * @return string
+     * @return string|null
      */
-    public function getFullPath(): string
+    public function getFullPath()
     {
         return $this->full_path;
     }
 
     /**
-     * Appends a function to the list with methods, if not present.
-     *
-     * @param string $function_name
+     * @param string $full_path
      */
-    public function addMethod(string $function_name)
+    public function setFullPath(string $full_path)
     {
-        if (!in_array($function_name, $this->methods, true)) {
-            $this->methods[] = $function_name;
-        }
+        $this->full_path = $full_path;
     }
 }

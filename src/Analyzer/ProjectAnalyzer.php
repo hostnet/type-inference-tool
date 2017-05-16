@@ -9,6 +9,7 @@ use Hostnet\Component\TypeInference\Analyzer\Data\AnalyzedClass;
 use Hostnet\Component\TypeInference\Analyzer\Data\AnalyzedFunction;
 use Hostnet\Component\TypeInference\Analyzer\Data\AnalyzedFunctionCollection;
 use Hostnet\Component\TypeInference\Analyzer\Data\AnalyzedReturn;
+use Hostnet\Component\TypeInference\Analyzer\Data\Exception\EntryNotFoundException;
 use Hostnet\Component\TypeInference\Analyzer\Data\Type\NonScalarPhpType;
 use Hostnet\Component\TypeInference\Analyzer\Data\Type\PhpTypeInterface;
 use Hostnet\Component\TypeInference\Analyzer\Data\Type\ScalarPhpType;
@@ -18,6 +19,7 @@ use Hostnet\Component\TypeInference\CodeEditor\Instruction\ReturnTypeInstruction
 use Hostnet\Component\TypeInference\CodeEditor\Instruction\TypeHintInstruction;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
+use Symfony\Component\Stopwatch\Stopwatch;
 
 /**
  * Uses analyzers to retrieve parameter- and return types. Determines whether type
@@ -26,7 +28,12 @@ use Psr\Log\NullLogger;
  */
 class ProjectAnalyzer
 {
-    const VENDOR_FOLDER = 'vendor';
+    /**
+     * Prefix used for logs outputted by this class. Also used
+     * by stopwatch for this class.
+     */
+    const TIMER_LOG_NAME = 'PROJECT_ANALYZER';
+    const VENDOR_FOLDER  = 'vendor';
 
     /**
      * @var string
@@ -65,11 +72,12 @@ class ProjectAnalyzer
     {
         $this->target_project          = $target_project;
         $analyzed_functions_collection = $this->collectAnalyzedFunctions();
-        return $this->generateInstructions($analyzed_functions_collection);
+        $instructions                  = $this->generateInstructions($analyzed_functions_collection);
+        return $this->handleCovariance($analyzed_functions_collection, $instructions);
     }
 
     /**
-     * Collects AnalyzedFunctions by applying static- and dynamic analysis.
+     * Collects AnalyzedFunctions by applying analyzers.
      *
      * @return AnalyzedFunctionCollection
      */
@@ -94,6 +102,9 @@ class ProjectAnalyzer
      */
     private function generateInstructions(AnalyzedFunctionCollection $analyzed_functions_collection): array
     {
+        $stopwatch = new Stopwatch();
+        $stopwatch->start(self::TIMER_LOG_NAME);
+        $this->logger->info(self::TIMER_LOG_NAME . ': Started determining types');
         $instructions = [];
 
         foreach ($analyzed_functions_collection as $analyzed_function) {
@@ -112,6 +123,10 @@ class ProjectAnalyzer
                 $this->generateReturnTypeInstruction($analyzed_function, $overridden_classes)
             );
         }
+
+        $this->logger->info(self::TIMER_LOG_NAME . ': Finished determining types ({time}s)', [
+            'time' => round($stopwatch->stop(self::TIMER_LOG_NAME)->getDuration() / 1000, 2)
+        ]);
 
         return $instructions;
     }
@@ -160,7 +175,7 @@ class ProjectAnalyzer
     }
 
     /**
-     * Checks whether an AnalyzedFunction should have an return type declaration. If
+     * Checks whether an AnalyzedFunction should have a return type declaration. If
      * that's the case, an instruction is generated.
      *
      * @param AnalyzedFunction $analyzed_function
@@ -307,10 +322,7 @@ class ProjectAnalyzer
     private function resolveMultipleTypes(array $types): PhpTypeInterface
     {
         if (!$this->containsOnlyScalars($types)) {
-            $php_types = array_map(function (PhpTypeInterface $analyzed_return) {
-                return $analyzed_return;
-            }, $types);
-            return NonScalarPhpType::getCommonParent($php_types);
+            return NonScalarPhpType::getCommonParent($types);
         }
 
         $scalar_types = array_map(function (PhpTypeInterface $type) {
@@ -322,6 +334,129 @@ class ProjectAnalyzer
         }
 
         return new UnresolvablePhpType(UnresolvablePhpType::INCONSISTENT);
+    }
+
+    /**
+     * Handles return type and parameter type hints covariance. Due to sub typing 'rules'
+     * subclasses or their parents can't always be type hinted. This function is used to
+     * remove instructions that would violate these rules.
+     *
+     * @param AnalyzedFunctionCollection $analyzed_function_collection
+     * @param AbstractInstruction[] $instructions
+     * @return AbstractInstruction[]
+     */
+    private function handleCovariance(
+        AnalyzedFunctionCollection $analyzed_function_collection,
+        array $instructions
+    ): array {
+        $analyzed_function_collection->applyInstructions($instructions);
+        $instructions = $this->handleReturnTypeCovariance($analyzed_function_collection, $instructions);
+
+        // TODO - Handle parameter type hint covariance
+        // Child parameters type hints must always be the same as its parents. Also, when the parent has no parameter
+        // type hint defined, the child still won't be able to have a type hint.
+        // PHP 7.2 will handle this differently, see https://wiki.php.net/rfc/parameter-no-type-variance
+        // In order to support PHP 7.2, there could be a check for the target projects its PHP version and
+        // based on that this will be handled.
+
+        return $instructions;
+    }
+
+    /**
+     * Used to remove return type instructions that would violate some of the sub typing
+     * limits. When parent functions already have return type declarations, its children
+     * must be compatible with those return types. When a parent does not have a return
+     * type declaration, its children can have different return types. In that case siblings
+     * may also differ in their return types.
+     *
+     * @param AnalyzedFunctionCollection $analyzed_function_collection
+     * @param AbstractInstruction[] $instructions
+     * @return AbstractInstruction[]
+     */
+    private function handleReturnTypeCovariance(
+        AnalyzedFunctionCollection $analyzed_function_collection,
+        array $instructions
+    ): array {
+        $unresolvable_returns = [];
+
+        foreach ($analyzed_function_collection as $analyzed_function) {
+            $parent_definition_classes = $this->getFunctionParents($analyzed_function);
+
+            foreach ($parent_definition_classes as $parent_definition_class) {
+                $function_name = $analyzed_function->getFunctionName();
+
+                try {
+                    $analyzed_parent_function = $analyzed_function_collection->get(
+                        $parent_definition_class->getFqcn(),
+                        $function_name
+                    );
+                } catch (EntryNotFoundException $e) {
+                    continue;
+                }
+
+                $child_return  = $analyzed_function->getDefinedReturnType();
+                $parent_return = $analyzed_parent_function->getDefinedReturnType();
+
+                if ($parent_return === $child_return || ($parent_return === null && $child_return !== null)) {
+                    continue;
+                }
+
+                foreach ($parent_definition_classes as $unresolvable_parent_function) {
+                    $unresolvable_returns[$unresolvable_parent_function->getFqcn()][] = $function_name;
+                    $this->logUnresolvableParentReturn(
+                        $function_name,
+                        $unresolvable_parent_function->getFqcn(),
+                        $parent_return,
+                        $analyzed_function->getClass()->getFqcn(),
+                        $child_return
+                    );
+                }
+
+                if ($parent_return === $child_return || !$analyzed_parent_function->hasReturnDeclaration()) {
+                    continue;
+                }
+
+                $unresolvable_returns[$analyzed_function->getClass()->getFqcn()][] = $function_name;
+                $this->logUnresolvableChildReturn(
+                    $function_name,
+                    $analyzed_function->getClass()->getFqcn(),
+                    $child_return,
+                    $analyzed_parent_function->getClass()->getFqcn() ?? 'none',
+                    $parent_return
+                );
+            }
+        }
+
+        return $this->removeReturnTypeInstructions($instructions, $unresolvable_returns);
+    }
+
+    /**
+     * Removes instructions from an array of AbstractInstructions based on the given
+     * array with unresolvable returns. The array of unresolvable returns contain
+     * fully qualified class names and function names. Instructions for these functions
+     * should be removed. This is used to remove instructions afterwards.
+     *
+     * @param AbstractInstruction[] $instructions
+     * @param string[][] $unresolvable_returns ['fqcn' => ['functionName']]
+     * @return AbstractInstruction[]
+     */
+    private function removeReturnTypeInstructions(array $instructions, array $unresolvable_returns): array
+    {
+        $filtered_instructions = $instructions;
+        foreach ($unresolvable_returns as $unresolvable_class => $unresolvable_functions) {
+            foreach ($instructions as $i => $instruction) {
+                if (!$instruction instanceof ReturnTypeInstruction) {
+                    continue;
+                }
+
+                if ($instruction->getTargetClass()->getFqcn() === $unresolvable_class
+                    && in_array($instruction->getTargetFunctionName(), $unresolvable_functions, true)
+                ) {
+                    unset($filtered_instructions[$i]);
+                }
+            }
+        }
+        return $filtered_instructions;
     }
 
     /**
@@ -450,6 +585,62 @@ class ProjectAnalyzer
                 'fqcn' => $analyzed_function->getClass()->getFqcn(),
                 'function' => $analyzed_function->getFunctionName(),
                 'parents' => implode(', ', $parent_classes)
+            ]
+        );
+    }
+
+    /**
+     * @param string $function_name
+     * @param string $parent_fqcn
+     * @param string $parent_return
+     * @param string $child_fqcn
+     * @param string $child_return
+     */
+    private function logUnresolvableParentReturn(
+        string $function_name,
+        string $parent_fqcn,
+        string $parent_return = null,
+        string $child_fqcn,
+        string $child_return = null
+    ) {
+        $this->logger->warning(
+            "RETURN_TYPE_COVARIANCE: Cannot add return type to parent class '{parent_fqcn}::" .
+            "{function}' due to its child '{child_fqcn}::{function}' returning different types. " .
+            "Parent returns: '{parent_type}', child returns: '{child_type}'",
+            [
+                'function' => $function_name,
+                'parent_fqcn' => $parent_fqcn,
+                'parent_type' => $parent_return,
+                'child_fqcn' => $child_fqcn,
+                'child_type' => $child_return
+            ]
+        );
+    }
+
+    /**
+     * @param string $function_name
+     * @param string $child_fqcn
+     * @param string $child_return
+     * @param string $parent_fqcn
+     * @param string $parent_return
+     */
+    private function logUnresolvableChildReturn(
+        string $function_name,
+        string $child_fqcn,
+        string $child_return = null,
+        string $parent_fqcn,
+        string $parent_return = null
+    ) {
+        $this->logger->warning(
+            "RETURN_TYPE_COVARIANCE: Cannot add return type to child class '{child_fqcn}::" .
+            "{function}' due to it not being compatible with its parent '{parent_fqcn}::" .
+            "{function}' return type. Child returns: '{child_type}', parent returns: '{parent_type}'",
+            [
+                'function' => $function_name,
+                'child_fqcn' => $child_fqcn,
+                'child_type' => $child_return,
+                'parent_fqcn' => $parent_fqcn,
+                'parent_type' => $parent_return
             ]
         );
     }

@@ -79,7 +79,10 @@ final class ReturnTypeInstruction extends AbstractInstruction
         $type                = $this->target_return_type;
         $type_representation = $type instanceof NonScalarPhpType ? $type->getClassName() : $type->getName();
 
-        $pattern      = sprintf('/function %s\((\n.*)*.*\)(?!:\s*\w+)/', $this->getTargetFunctionName());
+        $pattern      = sprintf(
+            '/function %s\((\n(\s*|\w*|\W*)*)*.*\)(?!:\s*(\\\\)?\w+)/',
+            $this->getTargetFunctionName()
+        );
         $replacement  = sprintf('$0: %s', $type_representation);
         $updated_file = preg_replace($pattern, $replacement, $file->getContents());
 
@@ -95,5 +98,13 @@ final class ReturnTypeInstruction extends AbstractInstruction
         ]);
 
         return $file;
+    }
+
+    /**
+     * @return PhpTypeInterface
+     */
+    public function getTargetReturnType(): PhpTypeInterface
+    {
+        return $this->target_return_type;
     }
 }
