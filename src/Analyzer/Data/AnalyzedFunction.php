@@ -6,7 +6,7 @@ declare(strict_types = 1);
 namespace Hostnet\Component\TypeInference\Analyzer\Data;
 
 /**
- * Holds analyzed data for a function withing a class and namespace. This data
+ * Holds analyzed data for a function within a class and namespace. This data
  * includes argument- and return types from calls.
  */
 class AnalyzedFunction
@@ -27,6 +27,11 @@ class AnalyzedFunction
     private $defined_return_type;
 
     /**
+     * @var AnalyzedParameter[]
+     */
+    private $defined_parameters;
+
+    /**
      * @var AnalyzedCall[]
      */
     private $collected_arguments = [];
@@ -45,18 +50,21 @@ class AnalyzedFunction
      * @param AnalyzedClass $class
      * @param string $function_name
      * @param string|null $return_type
+     * @param AnalyzedParameter[] $parameters
      * @param bool $has_return_declaration
      */
     public function __construct(
         AnalyzedClass $class,
         string $function_name,
         string $return_type = null,
-        bool $has_return_declaration = false
+        bool $has_return_declaration = false,
+        array $parameters = []
     ) {
         $this->class                  = $class;
         $this->function_name          = $function_name;
         $this->defined_return_type    = $return_type;
         $this->has_return_declaration = $has_return_declaration;
+        $this->defined_parameters     = $parameters;
     }
 
     /**
@@ -163,5 +171,21 @@ class AnalyzedFunction
     public function hasReturnDeclaration(): bool
     {
         return $this->has_return_declaration;
+    }
+
+    /**
+     * @return AnalyzedParameter[]
+     */
+    public function getDefinedParameters(): array
+    {
+        return $this->defined_parameters;
+    }
+
+    /**
+     * @param AnalyzedParameter[] $updated_parameters
+     */
+    public function setDefinedParameters(array $updated_parameters)
+    {
+        $this->defined_parameters = $updated_parameters;
     }
 }

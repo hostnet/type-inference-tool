@@ -102,4 +102,17 @@ class AnalyzedFunctionTest extends TestCase
         $this->analyzed_function->setDefinedReturnType(ScalarPhpType::TYPE_FLOAT);
         self::assertSame(ScalarPhpType::TYPE_FLOAT, $this->analyzed_function->getDefinedReturnType());
     }
+
+    public function testDefinedParametersShouldBeUpdatedAfterBeingSet()
+    {
+        self::assertEmpty($this->analyzed_function->getDefinedParameters());
+
+        $analyzed_parameters = [
+            new AnalyzedParameter(ScalarPhpType::TYPE_INT, true, true),
+            new AnalyzedParameter()
+        ];
+        $this->analyzed_function->setDefinedParameters($analyzed_parameters);
+
+        self::assertSame($analyzed_parameters, $this->analyzed_function->getDefinedParameters());
+    }
 }

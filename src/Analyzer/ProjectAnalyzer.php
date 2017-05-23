@@ -14,6 +14,7 @@ use Hostnet\Component\TypeInference\Analyzer\Data\Type\NonScalarPhpType;
 use Hostnet\Component\TypeInference\Analyzer\Data\Type\PhpTypeInterface;
 use Hostnet\Component\TypeInference\Analyzer\Data\Type\ScalarPhpType;
 use Hostnet\Component\TypeInference\Analyzer\Data\Type\UnresolvablePhpType;
+use Hostnet\Component\TypeInference\Analyzer\Data\UnresolvableHint;
 use Hostnet\Component\TypeInference\CodeEditor\Instruction\AbstractInstruction;
 use Hostnet\Component\TypeInference\CodeEditor\Instruction\ReturnTypeInstruction;
 use Hostnet\Component\TypeInference\CodeEditor\Instruction\TypeHintInstruction;
@@ -108,7 +109,7 @@ class ProjectAnalyzer
         $instructions = [];
 
         foreach ($analyzed_functions_collection as $analyzed_function) {
-            $overridden_classes = $this->getFunctionParents($analyzed_function);
+            $overridden_classes = $analyzed_functions_collection->getFunctionParents($analyzed_function);
             if ($this->containsVendorClass($overridden_classes)) {
                 $this->logImmutableParent($analyzed_function, $overridden_classes);
                 continue;
@@ -211,28 +212,6 @@ class ProjectAnalyzer
         }
 
         return $instructions;
-    }
-
-    /**
-     * In case the AnalyzedFunction overrides from one or more parent, these
-     * parents are returned.
-     *
-     * @param AnalyzedFunction $analyzed_function
-     * @return AnalyzedClass[]
-     */
-    private function getFunctionParents(AnalyzedFunction $analyzed_function): array
-    {
-        $function_parents  = [];
-        $all_class_parents = $analyzed_function->getClass()->getParents();
-        foreach ($all_class_parents as $parent) {
-            if ($parent->getFqcn() !== $analyzed_function->getClass()->getFqcn()
-                && in_array($analyzed_function->getFunctionName(), $parent->getMethods(), true)
-            ) {
-                $function_parents[] = $parent;
-            }
-        }
-
-        return $function_parents;
     }
 
     /**
@@ -351,15 +330,78 @@ class ProjectAnalyzer
     ): array {
         $analyzed_function_collection->applyInstructions($instructions);
         $instructions = $this->handleReturnTypeCovariance($analyzed_function_collection, $instructions);
+        return $this->handleParamTypeHintCovariance($analyzed_function_collection, $instructions);
+    }
 
-        // TODO - Handle parameter type hint covariance
-        // Child parameters type hints must always be the same as its parents. Also, when the parent has no parameter
-        // type hint defined, the child still won't be able to have a type hint.
-        // PHP 7.2 will handle this differently, see https://wiki.php.net/rfc/parameter-no-type-variance
-        // In order to support PHP 7.2, there could be a check for the target projects its PHP version and
-        // based on that this will be handled.
+    /**
+     * Used to remove TypeHintInstructions that would violate sub typing limits. All children
+     * must have the same parameter type hints as their parent. If the generated instructions
+     * would violate this rule, the instruction would be removed.
+     *
+     * PHP 7.2 will handle this differently (https://wiki.php.net/rfc/parameter-no-type-variance),
+     * as for now the main focus is on PHP 7.0.
+     *
+     * @param AnalyzedFunctionCollection $analyzed_function_collection
+     * @param AbstractInstruction[] $instructions
+     * @return AbstractInstruction[]
+     */
+    private function handleParamTypeHintCovariance(
+        AnalyzedFunctionCollection $analyzed_function_collection,
+        array $instructions
+    ): array {
+        $unresolvable_hints = [];
 
-        return $instructions;
+        foreach ($analyzed_function_collection as $analyzed_function) {
+            $analyzed_function_parents = $analyzed_function_collection->getFunctionParents($analyzed_function);
+
+            foreach ($analyzed_function_parents as $function_parent_class) {
+                foreach ($analyzed_function->getDefinedParameters() as $i => $function_parameter) {
+                    try {
+                        $parent_function = $analyzed_function_collection->get(
+                            $function_parent_class->getFqcn(),
+                            $analyzed_function->getFunctionName()
+                        );
+                    } catch (EntryNotFoundException $e) {
+                        continue;
+                    }
+
+                    if ($function_parameter->getType() ===
+                        $parent_function->getDefinedParameters()[$i]->getType()
+                    ) {
+                        continue;
+                    }
+
+                    $unresolvable_hints[] = new UnresolvableHint(
+                        $function_parent_class,
+                        $analyzed_function->getFunctionName(),
+                        UnresolvableHint::HINT_TYPE_PARAMETER,
+                        $i
+                    );
+
+                    $children = $analyzed_function_collection->getFunctionChildren(
+                        $function_parent_class,
+                        $analyzed_function->getFunctionName()
+                    );
+
+                    foreach ($children as $unresolvable_child) {
+                        $unresolvable_hints[] = new UnresolvableHint(
+                            $unresolvable_child,
+                            $analyzed_function->getFunctionName(),
+                            UnresolvableHint::HINT_TYPE_PARAMETER,
+                            $i
+                        );
+                    }
+
+                    $this->logUnresolvableParentTypeHint(
+                        $function_parent_class->getFqcn(),
+                        $analyzed_function->getFunctionName(),
+                        $i
+                    );
+                }
+            }
+        }
+
+        return $this->removeInstructions($instructions, $unresolvable_hints);
     }
 
     /**
@@ -377,10 +419,10 @@ class ProjectAnalyzer
         AnalyzedFunctionCollection $analyzed_function_collection,
         array $instructions
     ): array {
-        $unresolvable_returns = [];
+        $unresolvable_hints = [];
 
         foreach ($analyzed_function_collection as $analyzed_function) {
-            $parent_definition_classes = $this->getFunctionParents($analyzed_function);
+            $parent_definition_classes = $analyzed_function_collection->getFunctionParents($analyzed_function);
 
             foreach ($parent_definition_classes as $parent_definition_class) {
                 $function_name = $analyzed_function->getFunctionName();
@@ -403,6 +445,13 @@ class ProjectAnalyzer
 
                 foreach ($parent_definition_classes as $unresolvable_parent_function) {
                     $unresolvable_returns[$unresolvable_parent_function->getFqcn()][] = $function_name;
+
+                    $unresolvable_hints[] = new UnresolvableHint(
+                        $unresolvable_parent_function,
+                        $function_name,
+                        UnresolvableHint::HINT_TYPE_RETURN
+                    );
+
                     $this->logUnresolvableParentReturn(
                         $function_name,
                         $unresolvable_parent_function->getFqcn(),
@@ -416,7 +465,12 @@ class ProjectAnalyzer
                     continue;
                 }
 
-                $unresolvable_returns[$analyzed_function->getClass()->getFqcn()][] = $function_name;
+                $unresolvable_hints[] = new UnresolvableHint(
+                    $analyzed_function->getClass(),
+                    $function_name,
+                    UnresolvableHint::HINT_TYPE_RETURN
+                );
+
                 $this->logUnresolvableChildReturn(
                     $function_name,
                     $analyzed_function->getClass()->getFqcn(),
@@ -427,35 +481,45 @@ class ProjectAnalyzer
             }
         }
 
-        return $this->removeReturnTypeInstructions($instructions, $unresolvable_returns);
+        return $this->removeInstructions($instructions, $unresolvable_hints);
     }
 
     /**
-     * Removes instructions from an array of AbstractInstructions based on the given
-     * array with unresolvable returns. The array of unresolvable returns contain
-     * fully qualified class names and function names. Instructions for these functions
-     * should be removed. This is used to remove instructions afterwards.
+     * Takes a set of Instructions and UnresolvableHints and removes Instructions based
+     * on the UnresolvableHints.
      *
      * @param AbstractInstruction[] $instructions
-     * @param string[][] $unresolvable_returns ['fqcn' => ['functionName']]
+     * @param UnresolvableHint[] $unresolvable_hints
      * @return AbstractInstruction[]
      */
-    private function removeReturnTypeInstructions(array $instructions, array $unresolvable_returns): array
+    private function removeInstructions(array $instructions, array $unresolvable_hints): array
     {
         $filtered_instructions = $instructions;
-        foreach ($unresolvable_returns as $unresolvable_class => $unresolvable_functions) {
+
+        foreach ($unresolvable_hints as $unresolvable_hint) {
             foreach ($instructions as $i => $instruction) {
-                if (!$instruction instanceof ReturnTypeInstruction) {
+                if ($instruction->getTargetFunctionName() !== $unresolvable_hint->getFunctionName()
+                    || $instruction->getTargetClass()->getFqcn() !== $unresolvable_hint->getClass()->getFqcn()
+                ) {
                     continue;
                 }
 
-                if ($instruction->getTargetClass()->getFqcn() === $unresolvable_class
-                    && in_array($instruction->getTargetFunctionName(), $unresolvable_functions, true)
+                if ($instruction instanceof TypeHintInstruction
+                    && $unresolvable_hint->getHintType() === UnresolvableHint::HINT_TYPE_PARAMETER
+                    && $instruction->getTargetArgNumber() === $unresolvable_hint->getArgumentNumber()
+                ) {
+                    unset($filtered_instructions[$i]);
+                    continue;
+                }
+
+                if ($instruction instanceof ReturnTypeInstruction
+                    && $unresolvable_hint->getHintType() === UnresolvableHint::HINT_TYPE_RETURN
                 ) {
                     unset($filtered_instructions[$i]);
                 }
             }
         }
+
         return $filtered_instructions;
     }
 
@@ -613,6 +677,24 @@ class ProjectAnalyzer
                 'parent_type' => $parent_return,
                 'child_fqcn' => $child_fqcn,
                 'child_type' => $child_return
+            ]
+        );
+    }
+
+    /**
+     * @param string $fqcn
+     * @param string $function_name
+     * @param int $arg_nr
+     */
+    private function logUnresolvableParentTypeHint(string $fqcn, string $function_name, int $arg_nr)
+    {
+        $this->logger->warning(
+            "TYPE_HINT_COVARIANCE: Cannot add parameter type hints to '{fqcn}::{function}' (argument " .
+            '{arg_nr}) and its children due to inconsistent parameters types.',
+            [
+                'fqcn' => $fqcn,
+                'function' => $function_name,
+                'arg_nr' => $arg_nr
             ]
         );
     }

@@ -107,4 +107,20 @@ final class TypeHintInstruction extends AbstractInstruction
 
         return $file;
     }
+
+    /**
+     * @return int
+     */
+    public function getTargetArgNumber(): int
+    {
+        return $this->target_arg_number;
+    }
+
+    /**
+     * @return PhpTypeInterface
+     */
+    public function getTargetTypeHint(): PhpTypeInterface
+    {
+        return $this->target_type_hint;
+    }
 }

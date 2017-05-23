@@ -7,6 +7,7 @@ namespace Hostnet\Component\TypeInference\Analyzer\StaticMethod;
 
 use Hostnet\Component\TypeInference\Analyzer\Data\AnalyzedClass;
 use Hostnet\Component\TypeInference\Analyzer\Data\AnalyzedFunction;
+use Hostnet\Component\TypeInference\Analyzer\Data\AnalyzedParameter;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -54,7 +55,13 @@ class StaticAnalyzerTest extends TestCase
             ['__construct', 'getFoo', 'doSomething']
         );
 
-        $some_class_construct      = new AnalyzedFunction($some_class, '__construct');
+        $some_class_construct      = new AnalyzedFunction(
+            $some_class,
+            '__construct',
+            null,
+            false,
+            [new AnalyzedParameter()]
+        );
         $some_class_get_foo        = new AnalyzedFunction($some_class, 'getFoo');
         $some_class_do_something   = new AnalyzedFunction($some_class, 'doSomething');
         $foo_interface_get_foo     = new AnalyzedFunction($foo_interface, 'getFoo');

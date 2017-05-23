@@ -8,6 +8,7 @@ namespace Hostnet\Component\TypeInference\Analyzer;
 use Hostnet\Component\TypeInference\Analyzer\Data\AnalyzedCall;
 use Hostnet\Component\TypeInference\Analyzer\Data\AnalyzedClass;
 use Hostnet\Component\TypeInference\Analyzer\Data\AnalyzedFunction;
+use Hostnet\Component\TypeInference\Analyzer\Data\AnalyzedParameter;
 use Hostnet\Component\TypeInference\Analyzer\Data\AnalyzedReturn;
 use Hostnet\Component\TypeInference\Analyzer\Data\Type\NonScalarPhpType;
 use Hostnet\Component\TypeInference\Analyzer\Data\Type\PhpTypeInterface;
@@ -19,6 +20,7 @@ use Monolog\Handler\StreamHandler;
 use Monolog\Logger;
 use Monolog\Processor\PsrLogMessageProcessor;
 use PHPUnit\Framework\TestCase;
+use Psr\Log\NullLogger;
 use Symfony\Component\Filesystem\Filesystem;
 
 /**
@@ -206,6 +208,44 @@ class ProjectAnalyzerTest extends TestCase
         self::assertCount(2, $instructions);
         self::assertContains($expected_interface_instruction, $instructions, false, false, false);
         self::assertContains($expected_child_class_instruction, $instructions, false, false, false);
+    }
+
+    public function testDoNotGenerateParentAndChildrenTypeHintsWhenTheyAreDifferent()
+    {
+        $type_string = new ScalarPhpType(ScalarPhpType::TYPE_STRING);
+        $type_int    = new ScalarPhpType(ScalarPhpType::TYPE_INT);
+
+        $interface        = new AnalyzedClass('Namespace', 'ClazzInterface', 'file0.php', null, [], ['foobar']);
+        $interface_method = new AnalyzedFunction($interface, 'foobar', null, false, [
+            new AnalyzedParameter(), new AnalyzedParameter()
+        ]);
+
+        $child1_class        = new AnalyzedClass('Namespace', 'Clazz1', 'file1.php', null, [$interface], ['foobar']);
+        $child1_class_method = new AnalyzedFunction($child1_class, 'foobar', null, false, [
+            new AnalyzedParameter(), new AnalyzedParameter()
+        ]);
+        $child1_class_method->addCollectedArguments(new AnalyzedCall([$type_int, $type_int]));
+
+        $child2_class        = new AnalyzedClass('Namespace', 'Clazz2', 'file2.php', null, [$interface], ['foobar']);
+        $child2_class_method = new AnalyzedFunction($child2_class, 'foobar', null, false, [
+            new AnalyzedParameter(), new AnalyzedParameter()
+        ]);
+        $child2_class_method->addCollectedArguments(new AnalyzedCall([$type_int, $type_string]));
+
+        $class_parent = new AnalyzedClass('Ns', 'AbstractClazz', 'File.clzz', null, [], ['foobar']);
+        $class        = new AnalyzedClass('Ns', 'Clazz', 'File.clzz', null, [$class_parent], ['foobar']);
+        $class_method = new AnalyzedFunction($class, 'foobar', null, false, [new AnalyzedParameter()]);
+
+        $this->addFunctionAnalyserMock([$interface_method, $child1_class_method, $child2_class_method, $class_method]);
+        $instructions = $this->project_analyzer->analyse($this->target_project);
+
+        $invalid_instruction_1 = new TypeHintInstruction($interface, 'foobar', 1, $type_int, new NullLogger());
+        $invalid_instruction_2 = new TypeHintInstruction($child1_class, 'foobar', 1, $type_int, new NullLogger());
+        $invalid_instruction_3 = new TypeHintInstruction($child2_class, 'foobar', 1, $type_string, new NullLogger());
+
+        self::assertNotContains($invalid_instruction_1, $instructions, false, false, false);
+        self::assertNotContains($invalid_instruction_2, $instructions, false, false, false);
+        self::assertNotContains($invalid_instruction_3, $instructions, false, false, false);
     }
 
     public function testAnalyseFunctionWithLoggingEnabledShouldSaveLogs()

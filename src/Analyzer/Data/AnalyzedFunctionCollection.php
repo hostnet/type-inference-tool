@@ -6,8 +6,10 @@ declare(strict_types = 1);
 namespace Hostnet\Component\TypeInference\Analyzer\Data;
 
 use Hostnet\Component\TypeInference\Analyzer\Data\Exception\EntryNotFoundException;
+use Hostnet\Component\TypeInference\Analyzer\DynamicMethod\Tracer\Parser\Mapper\TracerPhpTypeMapper;
 use Hostnet\Component\TypeInference\CodeEditor\Instruction\AbstractInstruction;
 use Hostnet\Component\TypeInference\CodeEditor\Instruction\ReturnTypeInstruction;
+use Hostnet\Component\TypeInference\CodeEditor\Instruction\TypeHintInstruction;
 
 /**
  * Holds a traversable collection of {@link AnalyzedFunction}.
@@ -145,6 +147,58 @@ class AnalyzedFunctionCollection implements \Iterator
     }
 
     /**
+     * Searches for AnalyzedFunctions whose class is a child of the given parent class
+     * and also implements the given function.
+     *
+     * @param AnalyzedClass $parent
+     * @param String $function_name
+     * @return AnalyzedClass[]
+     */
+    public function getFunctionChildren(AnalyzedClass $parent, String $function_name): array
+    {
+        $children = [];
+
+        foreach ($this->analyzed_functions as $analyzed_function) {
+            if ($analyzed_function->getFunctionName() !== $function_name
+                || !in_array($analyzed_function->getFunctionName(), $parent->getMethods(), true)
+            ) {
+                continue;
+            }
+
+            $parents = $this->getFunctionParents($analyzed_function);
+            foreach ($parents as $analyzed_function_parent) {
+                if ($analyzed_function_parent->getFqcn() === $parent->getFqcn()) {
+                    $children[] = $analyzed_function->getClass();
+                }
+            }
+        }
+
+        return $children;
+    }
+
+    /**
+     * In case the AnalyzedFunction overrides from one or more parent, these
+     * parents are returned.
+     *
+     * @param AnalyzedFunction $analyzed_function
+     * @return AnalyzedClass[]
+     */
+    public function getFunctionParents(AnalyzedFunction $analyzed_function): array
+    {
+        $function_parents  = [];
+        $all_class_parents = $analyzed_function->getClass()->getParents();
+        foreach ($all_class_parents as $parent) {
+            if ($parent->getFqcn() !== $analyzed_function->getClass()->getFqcn()
+                && in_array($analyzed_function->getFunctionName(), $parent->getMethods(), true)
+            ) {
+                $function_parents[] = $parent;
+            }
+        }
+
+        return $function_parents;
+    }
+
+    /**
      * Searches the AnalyzedFunctions for a class by the given fully qualified
      * class name.
      *
@@ -175,6 +229,36 @@ class AnalyzedFunctionCollection implements \Iterator
         foreach ($instructions as $instruction) {
             if ($instruction instanceof ReturnTypeInstruction) {
                 $this->applyReturnTypeInstruction($instruction);
+                continue;
+            }
+
+            if ($instruction instanceof TypeHintInstruction) {
+                $this->applyTypeHintInstruction($instruction);
+            }
+        }
+    }
+
+    /**
+     * Applies a TypeHintInstruction to a AnalyzedFunction in the collection.
+     * Used to analyze the results of an instruction before applying it the an
+     * actual project.
+     *
+     * @param TypeHintInstruction $instruction
+     */
+    private function applyTypeHintInstruction(TypeHintInstruction $instruction)
+    {
+        foreach ($this->analyzed_functions as $function) {
+            $param_number = $instruction->getTargetArgNumber();
+
+            if ($instruction->getTargetFunctionName() === $function->getFunctionName()
+                && count($function->getDefinedParameters()) >= $instruction->getTargetArgNumber() + 1
+                && !$function->getDefinedParameters()[$param_number]->hasTypeHint()
+                && $function->getDefinedParameters()[$param_number]->getType() === TracerPhpTypeMapper::TYPE_UNKNOWN
+                && $instruction->getTargetClass()->getFqcn() === $function->getClass()->getFqcn()
+            ) {
+                $updated_parameters = $function->getDefinedParameters();
+                $updated_parameters[$param_number]->setType($instruction->getTargetTypeHint()->getName());
+                $function->setDefinedParameters($updated_parameters);
             }
         }
     }

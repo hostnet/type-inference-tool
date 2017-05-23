@@ -8,6 +8,7 @@ namespace Hostnet\Component\TypeInference\Analyzer\Data;
 use Hostnet\Component\TypeInference\Analyzer\Data\Type\NonScalarPhpType;
 use Hostnet\Component\TypeInference\Analyzer\Data\Type\ScalarPhpType;
 use Hostnet\Component\TypeInference\CodeEditor\Instruction\ReturnTypeInstruction;
+use Hostnet\Component\TypeInference\CodeEditor\Instruction\TypeHintInstruction;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -15,6 +16,16 @@ use PHPUnit\Framework\TestCase;
  */
 class AnalyzedFunctionCollectionTest extends TestCase
 {
+    /**
+     * @var AnalyzedFunctionCollection
+     */
+    private $collection;
+
+    protected function setUp()
+    {
+        $this->collection = new AnalyzedFunctionCollection();
+    }
+
     public function testAddAllFunctionsShouldAddAllNonDuplicates()
     {
         $namespace     = 'Just\\Some\\Namespace';
@@ -30,11 +41,10 @@ class AnalyzedFunctionCollectionTest extends TestCase
         $analyzed_function_1 = new AnalyzedFunction($class, $function_name);
         $analyzed_function_1->addCollectedReturn(new AnalyzedReturn(new NonScalarPhpType('', 'ObjB', '', null, [])));
 
-        $analyzed_function_collection = new AnalyzedFunctionCollection();
-        $analyzed_function_collection->addAll([$analyzed_function_0, $analyzed_function_1]);
+        $this->collection->addAll([$analyzed_function_0, $analyzed_function_1]);
 
         $amount_functions = 0;
-        foreach ($analyzed_function_collection as $i => $analyzed_function) {
+        foreach ($this->collection as $i => $analyzed_function) {
             $amount_functions = $i + 1;
             self::assertCount(2, $analyzed_function->getCollectedReturns());
             self::assertCount(1, $analyzed_function->getCollectedArguments());
@@ -51,24 +61,21 @@ class AnalyzedFunctionCollectionTest extends TestCase
         $class_method_1 = new AnalyzedFunction($class_0, 'Function1');
         $class_method_2 = new AnalyzedFunction($class_1, 'Function2');
 
-        $collection = new AnalyzedFunctionCollection();
-        $collection->add($class_method_1);
-        $collection->add($class_method_2);
+        $this->collection->add($class_method_1);
+        $this->collection->add($class_method_2);
 
-        foreach ($collection as $analyzed_function) {
+        foreach ($this->collection as $analyzed_function) {
             $methods_in_class = $analyzed_function->getClass()->getMethods();
             self::assertCount(2, $methods_in_class);
             self::assertContains('Function1', $methods_in_class);
             self::assertContains('Function2', $methods_in_class);
         }
 
-        self::assertCount(2, $collection->getAll());
+        self::assertCount(2, $this->collection->getAll());
     }
 
     public function testAddAllShouldMergeAnalyzedFunctions()
     {
-        $collection = new AnalyzedFunctionCollection();
-
         $extended             = new AnalyzedClass('Namespace', 'AbstractClassName', 'file2.php');
         $implemented          = new AnalyzedClass('Namespace', 'ClassNameInterface', 'file3.php');
         $analyzed_functions_0 = [new AnalyzedFunction(new AnalyzedClass('Namespace', 'ClassName'), 'foobar')];
@@ -85,9 +92,9 @@ class AnalyzedFunctionCollectionTest extends TestCase
             )
         ];
 
-        $collection->addAll($analyzed_functions_0);
-        $collection->addAll($analyzed_functions_1);
-        $results = $collection->getAll();
+        $this->collection->addAll($analyzed_functions_0);
+        $this->collection->addAll($analyzed_functions_1);
+        $results = $this->collection->getAll();
 
         self::assertCount(1, $results);
         self::assertEquals($expected, $results);
@@ -95,17 +102,43 @@ class AnalyzedFunctionCollectionTest extends TestCase
 
     public function testApplyInstructionsShouldApplyInstructionsToAnalyzedFunctions()
     {
-        $collection = new AnalyzedFunctionCollection();
-
         $class    = new AnalyzedClass('Namespace', 'ClassName', 'file.php', null, [], ['foobar']);
-        $function = new AnalyzedFunction($class, 'foobar');
-        $collection->add($function);
+        $function = new AnalyzedFunction($class, 'foobar', null, false, [new AnalyzedParameter()]);
+        $this->collection->add($function);
 
-        $return_type = new ScalarPhpType(ScalarPhpType::TYPE_FLOAT);
-        $instruction = new ReturnTypeInstruction($class, 'foobar', $return_type);
+        $return_type             = new ScalarPhpType(ScalarPhpType::TYPE_FLOAT);
+        $return_type_instruction = new ReturnTypeInstruction($class, 'foobar', $return_type);
 
-        $collection->applyInstructions([$instruction]);
+        $parameter_type        = new ScalarPhpType(ScalarPhpType::TYPE_STRING);
+        $type_hint_instruction = new TypeHintInstruction($class, 'foobar', 0, $parameter_type);
 
-        self::assertSame($return_type->getName(), $collection->getAll()[0]->getDefinedReturnType());
+        $this->collection->applyInstructions([$return_type_instruction, $type_hint_instruction]);
+
+        self::assertSame($return_type->getName(), $this->collection->getAll()[0]->getDefinedReturnType());
+        self::assertSame(
+            $parameter_type->getName(),
+            $this->collection->getAll()[0]->getDefinedParameters()[0]->getType()
+        );
+    }
+
+    public function testGetFunctionChildrenShouldReturnAllChildClassesImplementingAFunction()
+    {
+        $parent_class = new AnalyzedClass('Namespace', 'ClazzInterface', 'File1.php', null, [], ['foobar']);
+
+        $child          = new AnalyzedClass('Namespace', 'Clazz', 'File2.php', null, [$parent_class], ['foobar']);
+        $child_function = new AnalyzedFunction($child, 'foobar');
+
+        $other_class_1          = new AnalyzedClass('Namespace', 'Foobar', 'File3.php', null, [], ['foobar']);
+        $other_class_1_function = new AnalyzedFunction($other_class_1, 'foobar');
+
+        $other_class_2          = new AnalyzedClass('Namespace', 'AbstractClazz', 'File3.php', null, []);
+        $other_class_2_function = new AnalyzedFunction($other_class_2, 'someFunction');
+
+        $this->collection->addAll([$child_function, $other_class_1_function, $other_class_2_function]);
+
+        $parent_children = $this->collection->getFunctionChildren($parent_class, 'foobar');
+
+        self::assertCount(1, $parent_children);
+        self::assertSame($child, $parent_children[0]);
     }
 }

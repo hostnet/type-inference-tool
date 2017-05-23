@@ -8,9 +8,13 @@ namespace Hostnet\Component\TypeInference\Analyzer\StaticMethod\NodeVisitor;
 use Hostnet\Component\TypeInference\Analyzer\Data\AnalyzedClass;
 use Hostnet\Component\TypeInference\Analyzer\Data\AnalyzedFunction;
 use Hostnet\Component\TypeInference\Analyzer\Data\AnalyzedFunctionCollection;
+use Hostnet\Component\TypeInference\Analyzer\Data\AnalyzedParameter;
 use PhpParser\Node;
+use PhpParser\Node\Expr\ConstFetch;
 use PhpParser\Node\Name;
 use PhpParser\Node\Name\FullyQualified;
+use PhpParser\Node\Param;
+use PhpParser\Node\Scalar\LNumber;
 use PhpParser\Node\Scalar\String_;
 use PhpParser\Node\Stmt\Class_;
 use PhpParser\Node\Stmt\ClassMethod;
@@ -73,12 +77,7 @@ class FunctionNodeVisitorTest extends TestCase
 
     public function testBeforeTraverseShouldSetTheFileNameAndAddAnalyzedFunctionToCollection()
     {
-        $this->node_visitor->beforeTraverse($this->abstract_syntax_tree);
-        $this->node_visitor->enterNode($this->namespace_node);
-        $this->node_visitor->enterNode($this->class_node);
-        $this->node_visitor->enterNode($this->method_node);
-        $this->node_visitor->enterNode($this->return_node);
-        $this->node_visitor->afterTraverse($this->abstract_syntax_tree);
+        $this->traverseTree();
 
         $results           = $this->collection->getAll();
         $expected_function = new AnalyzedFunction(
@@ -90,7 +89,12 @@ class FunctionNodeVisitorTest extends TestCase
                 [new AnalyzedClass('', '\SomeClassInterface')],
                 ['foobar']
             ),
-            'foobar'
+            'foobar',
+            'string',
+            true,
+            [
+                new AnalyzedParameter('bool', true, true)
+            ]
         );
 
         self::assertCount(1, $results);
@@ -102,16 +106,34 @@ class FunctionNodeVisitorTest extends TestCase
         $this->method_node->returnType = new FullyQualified(new Name(['Namespace', 'Object']));
 
         $this->node_visitor->beforeTraverse($this->abstract_syntax_tree);
-        $this->node_visitor->beforeTraverse($this->abstract_syntax_tree);
-        $this->node_visitor->enterNode($this->namespace_node);
-        $this->node_visitor->enterNode($this->class_node);
-        $this->node_visitor->enterNode($this->method_node);
-        $this->node_visitor->enterNode($this->return_node);
-        $this->node_visitor->afterTraverse($this->abstract_syntax_tree);
+        $this->traverseTree();
 
         $results = $this->collection->getAll();
 
         self::assertSame('Namespace\Object', $results[0]->getDefinedReturnType());
+    }
+
+    public function testWhenClassMethodHasDefaultParametersItShouldBeAnalyzed()
+    {
+        $this->method_node = new ClassMethod('foobar', [
+            'params' => [
+                new Param('arg0', new LNumber(66), new Name('int')),
+                new Param('arg0', new Node\Scalar\DNumber(10.6)),
+            ],
+            'returnType' => 'string',
+            'type' => 1,
+            'stmts' => [
+                $this->return_node
+            ]
+        ], []);
+
+        $this->traverseTree();
+        $results = $this->collection->getAll();
+
+        self::assertTrue($results[0]->getDefinedParameters()[0]->hasTypeHint());
+        self::assertSame('int', $results[0]->getDefinedParameters()[0]->getType());
+        self::assertFalse($results[0]->getDefinedParameters()[1]->hasTypeHint());
+        self::assertTrue($results[0]->getDefinedParameters()[1]->hasDefaultValue());
     }
 
     /**
@@ -122,7 +144,7 @@ class FunctionNodeVisitorTest extends TestCase
      *
      *     class SomeClass extends AbstractSomeClass implements SomeClassInterface
      *     {
-     *         public function foobar()
+     *         public function foobar(bool $arg0 = true): string
      *         {
      *             return 'Hello';
      *         }
@@ -133,8 +155,10 @@ class FunctionNodeVisitorTest extends TestCase
     {
         $this->return_node    = new Return_(new String_('Hello'));
         $this->method_node    = new ClassMethod('foobar', [
-            'params' => [],
-            'returnType' => null,
+            'params' => [
+                new Param('arg0', new ConstFetch(new Name('true')), 'bool')
+            ],
+            'returnType' => 'string',
             'type' => 1,
             'stmts' => [
                 $this->return_node
@@ -150,5 +174,15 @@ class FunctionNodeVisitorTest extends TestCase
         $this->namespace_node = new Namespace_(new Name(['Just', 'Some', 'NamespaceName']), [$this->class_node], []);
 
         $this->abstract_syntax_tree = [$this->namespace_node];
+    }
+
+    private function traverseTree()
+    {
+        $this->node_visitor->beforeTraverse($this->abstract_syntax_tree);
+        $this->node_visitor->enterNode($this->namespace_node);
+        $this->node_visitor->enterNode($this->class_node);
+        $this->node_visitor->enterNode($this->method_node);
+        $this->node_visitor->enterNode($this->return_node);
+        $this->node_visitor->afterTraverse($this->abstract_syntax_tree);
     }
 }

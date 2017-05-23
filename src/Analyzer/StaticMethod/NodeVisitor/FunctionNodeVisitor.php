@@ -8,6 +8,7 @@ namespace Hostnet\Component\TypeInference\Analyzer\StaticMethod\NodeVisitor;
 use Hostnet\Component\TypeInference\Analyzer\Data\AnalyzedClass;
 use Hostnet\Component\TypeInference\Analyzer\Data\AnalyzedFunction;
 use Hostnet\Component\TypeInference\Analyzer\Data\AnalyzedFunctionCollection;
+use Hostnet\Component\TypeInference\Analyzer\Data\AnalyzedParameter;
 use Hostnet\Component\TypeInference\Analyzer\DynamicMethod\Tracer\Parser\Mapper\TracerPhpTypeMapper;
 use PhpParser\Node;
 use PhpParser\Node\Name;
@@ -113,19 +114,14 @@ class FunctionNodeVisitor extends NodeVisitorAbstract
             return;
         }
 
-        $has_return_type = $node->returnType !== null;
-        if ($has_return_type && $node->returnType instanceof FullyQualified) {
-            $return_type = $node->returnType->toString();
-        } else {
-            $return_type = $node->returnType;
-        }
-
+        $return_type = $this->getClassMethodReturnType($node);
         $this->current_function++;
         $this->analyzed_functions[$this->current_function] = new AnalyzedFunction(
             $this->current_class,
             $node->name,
             $return_type,
-            $has_return_type
+            $return_type !== null,
+            $this->getClassMethodParameters($node)
         );
     }
 
@@ -156,5 +152,53 @@ class FunctionNodeVisitor extends NodeVisitorAbstract
                 return new AnalyzedClass($namespace, $class_name);
             }, $node->implements));
         }
+    }
+
+    /**
+     * Used to retrieve the return type from a ClassMethod.
+     *
+     * @param ClassMethod $class
+     * @return string|null
+     */
+    private function getClassMethodReturnType(ClassMethod $class)
+    {
+        if ($class->returnType instanceof FullyQualified && $class->returnType !== null) {
+            return $class->returnType->toString();
+        }
+
+        return $class->returnType;
+    }
+
+    /**
+     * Retrieves a list of AnalyzedParameters extracted from the given class
+     * method.
+     *
+     * @param ClassMethod $class
+     * @return AnalyzedParameter[]
+     */
+    private function getClassMethodParameters(ClassMethod $class): array
+    {
+        $analyzed_parameters = [];
+
+        foreach ($class->params as $param) {
+            $analyzed_parameter    = new AnalyzedParameter();
+            $analyzed_parameters[] = $analyzed_parameter;
+
+            $analyzed_parameter->setHasDefaultValue($param->default !== null);
+
+            if ($param->type === null) {
+                continue;
+            }
+
+            $analyzed_parameter->setHasTypeHint(true);
+            if ($param->type instanceof Name) {
+                $analyzed_parameter->setType($param->type->toString());
+                continue;
+            }
+
+            $analyzed_parameter->setType($param->type);
+        }
+
+        return $analyzed_parameters;
     }
 }

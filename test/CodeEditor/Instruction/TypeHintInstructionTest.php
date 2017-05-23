@@ -64,5 +64,7 @@ class TypeHintInstructionTest extends TestCase
             $this->fixtures_dir . $this->project_expected . $this->example_class,
             $this->fixtures_dir . $this->target_project . $this->example_class
         );
+        self::assertSame($arg_number, $instruction_single_lined->getTargetArgNumber());
+        self::assertSame($type_hint, $instruction_single_lined->getTargetTypeHint());
     }
 }
