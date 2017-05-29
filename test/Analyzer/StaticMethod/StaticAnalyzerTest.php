@@ -60,7 +60,7 @@ class StaticAnalyzerTest extends TestCase
             '__construct',
             null,
             false,
-            [new AnalyzedParameter()]
+            [new AnalyzedParameter('foo')]
         );
         $some_class_get_foo        = new AnalyzedFunction($some_class, 'getFoo');
         $some_class_do_something   = new AnalyzedFunction($some_class, 'doSomething');
@@ -68,7 +68,7 @@ class StaticAnalyzerTest extends TestCase
         $abstract_foo_do_something = new AnalyzedFunction($abstract_foo, 'doSomething');
         $abstract_foo_foobar       = new AnalyzedFunction($abstract_foo, 'foobar');
 
-        self::assertCount(6, $results);
+        self::assertCount(7, $results);
         self::assertContains($some_class_construct, $results, false, false, false);
         self::assertContains($some_class_get_foo, $results, false, false, false);
         self::assertContains($some_class_do_something, $results, false, false, false);

@@ -3,7 +3,6 @@ declare(strict_types=1);
 /**
  * @copyright 2017 Hostnet B.V.
  */
-
 namespace Hostnet\Component\TypeInference\Analyzer\Data;
 
 use Hostnet\Component\TypeInference\Analyzer\Data\Type\ScalarPhpType;
@@ -22,7 +21,10 @@ class AnalyzedParameterTest extends TestCase
         self::assertSame(TracerPhpTypeMapper::TYPE_UNKNOWN, $analyzed_parameter->getType());
         self::assertFalse($analyzed_parameter->hasTypeHint());
         self::assertFalse($analyzed_parameter->hasDefaultValue());
+        self::assertEmpty($analyzed_parameter->getName());
 
+        $parameter_name = 'parameter_name';
+        $analyzed_parameter->setName($parameter_name);
         $analyzed_parameter->setHasDefaultValue(true);
         $analyzed_parameter->setHasTypeHint(true);
         $analyzed_parameter->setType(ScalarPhpType::TYPE_INT);
@@ -30,5 +32,6 @@ class AnalyzedParameterTest extends TestCase
         self::assertSame(ScalarPhpType::TYPE_INT, $analyzed_parameter->getType());
         self::assertTrue($analyzed_parameter->hasTypeHint());
         self::assertTrue($analyzed_parameter->hasDefaultValue());
+        self::assertSame($parameter_name, $analyzed_parameter->getName());
     }
 }

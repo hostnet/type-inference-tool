@@ -262,6 +262,9 @@ class ProjectAnalyzerTest extends TestCase
         $analyzed_function_1->addCollectedArguments(new AnalyzedCall([new ScalarPhpType(ScalarPhpType::TYPE_FLOAT)]));
         $analyzed_function_1->addCollectedReturn(new AnalyzedReturn(new ScalarPhpType(ScalarPhpType::TYPE_BOOL)));
         $analyzed_function_1->addCollectedReturn(new AnalyzedReturn(new ScalarPhpType(ScalarPhpType::TYPE_STRING)));
+        $analyzed_function_1->addCollectedReturn(new AnalyzedReturn(
+            new UnresolvablePhpType(UnresolvablePhpType::DOCBLOCK)
+        ));
 
         $vendor_class        = new AnalyzedClass(
             'Ns',

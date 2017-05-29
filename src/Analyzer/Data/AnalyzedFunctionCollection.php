@@ -147,6 +147,24 @@ class AnalyzedFunctionCollection implements \Iterator
     }
 
     /**
+     * Retrieves an AnalyzedClass by its fully qualified namespace.
+     *
+     * @param string $fqcn
+     * @return AnalyzedClass
+     * @throws EntryNotFoundException
+     */
+    public function getClass(string $fqcn): AnalyzedClass
+    {
+        foreach ($this->shared_classes as $class) {
+            if ($class->getFqcn() === $fqcn) {
+                return $class;
+            }
+        }
+
+        throw new EntryNotFoundException(sprintf("Class '%s' does not exist in the collection.", $fqcn));
+    }
+
+    /**
      * Searches for AnalyzedFunctions whose class is a child of the given parent class
      * and also implements the given function.
      *

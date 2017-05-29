@@ -5,6 +5,7 @@ declare(strict_types = 1);
  */
 namespace Hostnet\Component\TypeInference\Analyzer\StaticMethod\NodeVisitor;
 
+use gossi\docblock\Docblock;
 use Hostnet\Component\TypeInference\Analyzer\Data\AnalyzedClass;
 use Hostnet\Component\TypeInference\Analyzer\Data\AnalyzedFunction;
 use Hostnet\Component\TypeInference\Analyzer\Data\AnalyzedFunctionCollection;
@@ -17,18 +18,12 @@ use PhpParser\Node\Stmt\Class_;
 use PhpParser\Node\Stmt\ClassMethod;
 use PhpParser\Node\Stmt\Interface_;
 use PhpParser\Node\Stmt\Namespace_;
-use PhpParser\NodeVisitorAbstract;
 
 /**
  * Node visitor used to collect classes, methods, extends and implements.
  */
-class FunctionNodeVisitor extends NodeVisitorAbstract
+final class FunctionNodeVisitor extends AbstractAnalyzingNodeVisitor
 {
-    /**
-     * @var AnalyzedFunctionCollection
-     */
-    private $analyzed_function_collection;
-
     /**
      * @var string
      */
@@ -57,9 +52,9 @@ class FunctionNodeVisitor extends NodeVisitorAbstract
      */
     public function __construct(AnalyzedFunctionCollection $analyzed_function_collection, string $file_path)
     {
-        $this->analyzed_function_collection = $analyzed_function_collection;
-        $this->file_path                    = $file_path;
-        $this->current_class                = new AnalyzedClass();
+        parent::__construct($analyzed_function_collection);
+        $this->file_path     = $file_path;
+        $this->current_class = new AnalyzedClass();
     }
 
     /**
@@ -88,7 +83,7 @@ class FunctionNodeVisitor extends NodeVisitorAbstract
     public function afterTraverse(array $nodes)
     {
         parent::afterTraverse($nodes);
-        $this->analyzed_function_collection->addAll($this->analyzed_functions);
+        $this->getAnalyzedFunctionCollection()->addAll($this->analyzed_functions);
     }
 
     /**
@@ -123,6 +118,11 @@ class FunctionNodeVisitor extends NodeVisitorAbstract
             $return_type !== null,
             $this->getClassMethodParameters($node)
         );
+
+        if ($node->getDocComment() !== null) {
+            $docblock = new Docblock($node->getDocComment()->getText());
+            $this->analyzed_functions[$this->current_function]->setDocblock($docblock);
+        }
     }
 
     /**
@@ -184,6 +184,7 @@ class FunctionNodeVisitor extends NodeVisitorAbstract
             $analyzed_parameter    = new AnalyzedParameter();
             $analyzed_parameters[] = $analyzed_parameter;
 
+            $analyzed_parameter->setName($param->name);
             $analyzed_parameter->setHasDefaultValue($param->default !== null);
 
             if ($param->type === null) {

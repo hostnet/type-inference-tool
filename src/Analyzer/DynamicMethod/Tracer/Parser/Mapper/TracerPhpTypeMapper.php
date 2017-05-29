@@ -18,16 +18,15 @@ class TracerPhpTypeMapper
     const NAMESPACE_GLOBAL  = '';
     const TYPE_UNKNOWN      = 'unknown';
     const CLASS_PREFIX      = 'class';
+    const TYPE_ARRAY        = 'array';
     const FUNCTION_CLOSURE  = '{closure}';
     const REGEX_TO_TYPE_MAP = [
-        '/string\(\d+\)/' => 'string',
-        '/array\(\d+\)/' => 'array',
-        '/\{closure\}/' => 'callable',
-        '/class Closure/' => 'callable',
-        '/true/' => 'bool',
-        '/false/' => 'bool',
-        '/long/' => 'int',
-        '/double/' => 'float',
+        '/string(\(\d+\))?|String/' => 'string',
+        '/array(\(\d+\))?/' => 'array',
+        '/\{closure\}|class Closure|callable/' => 'callable',
+        '/true|false|bool|boolean/' => 'bool',
+        '/long|int|integer/' => 'int',
+        '/double|float|number/' => 'float',
     ];
 
     /**

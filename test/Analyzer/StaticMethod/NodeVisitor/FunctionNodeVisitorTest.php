@@ -9,6 +9,7 @@ use Hostnet\Component\TypeInference\Analyzer\Data\AnalyzedClass;
 use Hostnet\Component\TypeInference\Analyzer\Data\AnalyzedFunction;
 use Hostnet\Component\TypeInference\Analyzer\Data\AnalyzedFunctionCollection;
 use Hostnet\Component\TypeInference\Analyzer\Data\AnalyzedParameter;
+use PhpParser\Comment\Doc;
 use PhpParser\Node;
 use PhpParser\Node\Expr\ConstFetch;
 use PhpParser\Node\Name;
@@ -92,9 +93,7 @@ class FunctionNodeVisitorTest extends TestCase
             'foobar',
             'string',
             true,
-            [
-                new AnalyzedParameter('bool', true, true)
-            ]
+            [new AnalyzedParameter('arg0', 'bool', true, true)]
         );
 
         self::assertCount(1, $results);
@@ -113,8 +112,9 @@ class FunctionNodeVisitorTest extends TestCase
         self::assertSame('Namespace\Object', $results[0]->getDefinedReturnType());
     }
 
-    public function testWhenClassMethodHasDefaultParametersItShouldBeAnalyzed()
+    public function testWhenClassMethodHasDefaultParametersAndDocblockItShouldBeAnalyzed()
     {
+        $docblock          = "/**\n * Docblock of this function\n */";
         $this->method_node = new ClassMethod('foobar', [
             'params' => [
                 new Param('arg0', new LNumber(66), new Name('int')),
@@ -122,10 +122,9 @@ class FunctionNodeVisitorTest extends TestCase
             ],
             'returnType' => 'string',
             'type' => 1,
-            'stmts' => [
-                $this->return_node
-            ]
+            'stmts' => [$this->return_node]
         ], []);
+        $this->method_node->setDocComment(new Doc($docblock));
 
         $this->traverseTree();
         $results = $this->collection->getAll();
@@ -134,6 +133,7 @@ class FunctionNodeVisitorTest extends TestCase
         self::assertSame('int', $results[0]->getDefinedParameters()[0]->getType());
         self::assertFalse($results[0]->getDefinedParameters()[1]->hasTypeHint());
         self::assertTrue($results[0]->getDefinedParameters()[1]->hasDefaultValue());
+        self::assertSame($docblock, $results[0]->getDocblock()->toString());
     }
 
     /**
@@ -160,9 +160,7 @@ class FunctionNodeVisitorTest extends TestCase
             ],
             'returnType' => 'string',
             'type' => 1,
-            'stmts' => [
-                $this->return_node
-            ]
+            'stmts' => [$this->return_node]
         ], []);
         $this->class_node     = new Class_('SomeClass', [
             'extends' => new Name(['AbstractSomeClass']),

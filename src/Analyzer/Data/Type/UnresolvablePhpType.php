@@ -21,21 +21,41 @@ final class UnresolvablePhpType implements PhpTypeInterface
     const NONE = 'none';
 
     /**
+     * Used in case of no type definition in a docblock.
+     */
+    const DOCBLOCK = 'docblock';
+
+    /**
+     * Used in case of mixed type hints in a docblock.
+     * E.g. the use of 'mixed' or '|' ('string|null').
+     */
+    const DOCBLOCK_MULTIPLE = 'docblock_multiple';
+
+    /**
      * @var string
      */
     private $type;
 
     /**
+     * Optional message used to explain why a PhpType is unresolved.
+     *
+     * @var string
+     */
+    private $message;
+
+    /**
      * @param string $type
+     * @param string $message
      * @throws \InvalidArgumentException
      */
-    public function __construct(string $type)
+    public function __construct(string $type, string $message = null)
     {
-        if (!in_array($type, [self::INCONSISTENT, self::NONE], true)) {
+        if (!in_array($type, [self::INCONSISTENT, self::NONE, self::DOCBLOCK, self::DOCBLOCK_MULTIPLE], true)) {
             throw new \InvalidArgumentException('Invalid type given');
         }
 
-        $this->type = $type;
+        $this->type    = $type;
+        $this->message = $message;
     }
 
     /**
@@ -43,6 +63,6 @@ final class UnresolvablePhpType implements PhpTypeInterface
      */
     public function getName(): string
     {
-        return $this->type;
+        return $this->type . ($this->message !== null ? ' (' . $this->message . ')' : '');
     }
 }

@@ -144,9 +144,9 @@ class AnalyzedClass
     }
 
     /**
-     * @return string
+     * @return string|null
      */
-    public function getNamespace(): string
+    public function getNamespace()
     {
         return $this->namespace;
     }

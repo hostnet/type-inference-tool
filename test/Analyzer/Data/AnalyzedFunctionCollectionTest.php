@@ -5,6 +5,7 @@ declare(strict_types = 1);
  */
 namespace Hostnet\Component\TypeInference\Analyzer\Data;
 
+use Hostnet\Component\TypeInference\Analyzer\Data\Exception\EntryNotFoundException;
 use Hostnet\Component\TypeInference\Analyzer\Data\Type\NonScalarPhpType;
 use Hostnet\Component\TypeInference\Analyzer\Data\Type\ScalarPhpType;
 use Hostnet\Component\TypeInference\CodeEditor\Instruction\ReturnTypeInstruction;
@@ -51,6 +52,7 @@ class AnalyzedFunctionCollectionTest extends TestCase
         }
 
         self::assertSame(1, $amount_functions);
+        self::assertSame($class, $this->collection->getClass($namespace . '\\' . $class_name));
     }
 
     public function testMethodsInClassShouldHaveSameClassObject()
@@ -140,5 +142,24 @@ class AnalyzedFunctionCollectionTest extends TestCase
 
         self::assertCount(1, $parent_children);
         self::assertSame($child, $parent_children[0]);
+    }
+
+    public function testGetClassShouldRetrieveAnAnalyzedClassWithTheCorrectFqcn()
+    {
+        $namespace  = 'Just\\Some\\Namespace';
+        $class_name = 'ClassName';
+
+        $class    = new AnalyzedClass($namespace, $class_name, 'file.php', null, [], ['foobar']);
+        $function = new AnalyzedFunction($class, 'foobar', null, false, [new AnalyzedParameter()]);
+
+        $this->collection->add($function);
+
+        self::assertSame($class, $this->collection->getClass($namespace . '\\' . $class_name));
+    }
+
+    public function testWhenGetClassIsCalledWithInvalidFqcnThenEntryShouldNotBeFound()
+    {
+        $this->expectException(EntryNotFoundException::class);
+        $this->collection->getClass('Non\\Existent::Class');
     }
 }

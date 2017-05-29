@@ -68,10 +68,17 @@ abstract class AbstractInstruction
         foreach ($finder as $file) {
             $file_contents = $file->getContents();
 
-            if (strpos($file_contents, sprintf('function %s(', $this->target_function_name)) !== false
-                && strpos($file_contents, sprintf('namespace %s;', $this->target_class->getNamespace())) !== false
-                && (strpos($file_contents, sprintf('class %s', $this->target_class->getClassName())) !== false
-                    || strpos($file_contents, sprintf('interface %s', $this->target_class->getClassName())) !== false)
+            $regex_namespace_pattern  = sprintf(
+                '/namespace %s;/',
+                preg_quote($this->target_class->getNamespace() ?? '', '/')
+            );
+            $regex_class_name_pattern = sprintf(
+                '/(interface|class) %s(\s|$)/',
+                preg_quote($this->target_class->getClassName(), '/')
+            );
+
+            if (preg_match($regex_namespace_pattern, $file_contents) === 1
+                && preg_match($regex_class_name_pattern, $file_contents) === 1
             ) {
                 return new CodeEditorFile($file->getRealPath(), $file_contents);
             }

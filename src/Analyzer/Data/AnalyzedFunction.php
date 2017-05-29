@@ -5,6 +5,8 @@ declare(strict_types = 1);
  */
 namespace Hostnet\Component\TypeInference\Analyzer\Data;
 
+use gossi\docblock\Docblock;
+
 /**
  * Holds analyzed data for a function within a class and namespace. This data
  * includes argument- and return types from calls.
@@ -45,6 +47,11 @@ class AnalyzedFunction
      * @var bool
      */
     private $has_return_declaration;
+
+    /**
+     * @var Docblock
+     */
+    private $docblock;
 
     /**
      * @param AnalyzedClass $class
@@ -187,5 +194,21 @@ class AnalyzedFunction
     public function setDefinedParameters(array $updated_parameters)
     {
         $this->defined_parameters = $updated_parameters;
+    }
+
+    /**
+     * @return Docblock|null
+     */
+    public function getDocblock()
+    {
+        return $this->docblock;
+    }
+
+    /**
+     * @param Docblock $docblock
+     */
+    public function setDocblock(Docblock $docblock)
+    {
+        $this->docblock = $docblock;
     }
 }

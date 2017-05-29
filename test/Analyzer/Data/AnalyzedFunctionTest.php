@@ -5,6 +5,7 @@ declare(strict_types = 1);
  */
 namespace Hostnet\Component\TypeInference\Analyzer\Data;
 
+use gossi\docblock\Docblock;
 use Hostnet\Component\TypeInference\Analyzer\Data\Type\NonScalarPhpType;
 use Hostnet\Component\TypeInference\Analyzer\Data\Type\ScalarPhpType;
 use PHPUnit\Framework\TestCase;
@@ -108,11 +109,21 @@ class AnalyzedFunctionTest extends TestCase
         self::assertEmpty($this->analyzed_function->getDefinedParameters());
 
         $analyzed_parameters = [
-            new AnalyzedParameter(ScalarPhpType::TYPE_INT, true, true),
+            new AnalyzedParameter('$arg0', ScalarPhpType::TYPE_INT, true, true),
             new AnalyzedParameter()
         ];
         $this->analyzed_function->setDefinedParameters($analyzed_parameters);
 
         self::assertSame($analyzed_parameters, $this->analyzed_function->getDefinedParameters());
+    }
+
+    public function testDocBlockShouldBeUpdatedAfterBeingSet()
+    {
+        self::assertNull($this->analyzed_function->getDocblock());
+
+        $docblock = new Docblock('/** Docblock */');
+        $this->analyzed_function->setDocblock($docblock);
+
+        self::assertSame($docblock, $this->analyzed_function->getDocblock());
     }
 }

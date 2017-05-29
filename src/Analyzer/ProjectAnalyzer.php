@@ -15,6 +15,7 @@ use Hostnet\Component\TypeInference\Analyzer\Data\Type\PhpTypeInterface;
 use Hostnet\Component\TypeInference\Analyzer\Data\Type\ScalarPhpType;
 use Hostnet\Component\TypeInference\Analyzer\Data\Type\UnresolvablePhpType;
 use Hostnet\Component\TypeInference\Analyzer\Data\UnresolvableHint;
+use Hostnet\Component\TypeInference\Analyzer\DynamicMethod\Tracer\Parser\Mapper\TracerPhpTypeMapper;
 use Hostnet\Component\TypeInference\CodeEditor\Instruction\AbstractInstruction;
 use Hostnet\Component\TypeInference\CodeEditor\Instruction\ReturnTypeInstruction;
 use Hostnet\Component\TypeInference\CodeEditor\Instruction\TypeHintInstruction;
@@ -50,6 +51,11 @@ class ProjectAnalyzer
      * @var FunctionAnalyzerInterface[]
      */
     private $analyzers = [];
+
+    /**
+     * @var AnalyzedFunctionCollection
+     */
+    private $analyzed_function_collection;
 
     /**
      * @param LoggerInterface $logger
@@ -103,6 +109,8 @@ class ProjectAnalyzer
      */
     private function generateInstructions(AnalyzedFunctionCollection $analyzed_functions_collection): array
     {
+        $this->analyzed_function_collection = $analyzed_functions_collection;
+
         $stopwatch = new Stopwatch();
         $stopwatch->start(self::TIMER_LOG_NAME);
         $this->logger->info(self::TIMER_LOG_NAME . ': Started determining types');
@@ -300,13 +308,38 @@ class ProjectAnalyzer
      */
     private function resolveMultipleTypes(array $types): PhpTypeInterface
     {
-        if (!$this->containsOnlyScalars($types)) {
-            return NonScalarPhpType::getCommonParent($types);
+        $filtered_types = [];
+        $only_scalars   = true;
+        foreach ($types as $type) {
+            if ($type instanceof UnresolvablePhpType && $type->getName() === UnresolvablePhpType::DOCBLOCK) {
+                continue;
+            }
+
+            if ($type instanceof NonScalarPhpType
+                && $type->getNamespace() !== TracerPhpTypeMapper::NAMESPACE_GLOBAL
+                && $type->getClassName() !== TracerPhpTypeMapper::TYPE_ARRAY
+            ) {
+                $only_scalars = false;
+                try {
+                    $filtered_types[] = $this->analyzed_function_collection->getClass($type->getFqcn());
+                } catch (EntryNotFoundException $e) {
+                    $filtered_types[] = $type;
+                }
+                continue;
+            }
+            if (!$type instanceof ScalarPhpType) {
+                $only_scalars = false;
+            }
+            $filtered_types[] = $type;
+        }
+
+        if (!$only_scalars) {
+            return NonScalarPhpType::getCommonParent($filtered_types);
         }
 
         $scalar_types = array_map(function (PhpTypeInterface $type) {
             return $type->getName();
-        }, $types);
+        }, $filtered_types);
 
         if (count(array_diff($scalar_types, [ScalarPhpType::TYPE_FLOAT, ScalarPhpType::TYPE_INT])) === 0) {
             return new ScalarPhpType(ScalarPhpType::TYPE_FLOAT);
@@ -521,22 +554,6 @@ class ProjectAnalyzer
         }
 
         return $filtered_instructions;
-    }
-
-    /**
-     * Returns whether an array of PhpTypes only contains scalar types.
-     *
-     * @param PhpTypeInterface[] $types
-     * @return bool
-     */
-    private function containsOnlyScalars(array $types): bool
-    {
-        foreach ($types as $type) {
-            if (!$type instanceof ScalarPhpType) {
-                return false;
-            }
-        }
-        return true;
     }
 
     /**

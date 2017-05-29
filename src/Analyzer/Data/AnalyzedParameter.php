@@ -16,6 +16,11 @@ final class AnalyzedParameter
     /**
      * @var string
      */
+    private $name;
+
+    /**
+     * @var string
+     */
     private $type;
 
     /**
@@ -29,15 +34,18 @@ final class AnalyzedParameter
     private $has_type_hint;
 
     /**
+     * @param string $name
      * @param string $type
      * @param bool $has_default_value
      * @param bool $has_type_hint
      */
     public function __construct(
+        string $name = '',
         string $type = TracerPhpTypeMapper::TYPE_UNKNOWN,
         bool $has_default_value = false,
         bool $has_type_hint = false
     ) {
+        $this->name              = $name;
         $this->type              = $type;
         $this->has_default_value = $has_default_value;
         $this->has_type_hint     = $has_type_hint;
@@ -88,5 +96,21 @@ final class AnalyzedParameter
     public function setHasTypeHint(bool $has_type_hint)
     {
         $this->has_type_hint = $has_type_hint;
+    }
+
+    /**
+     * @return string
+     */
+    public function getName(): string
+    {
+        return $this->name;
+    }
+
+    /**
+     * @param $name string
+     */
+    public function setName(string $name)
+    {
+        $this->name = $name;
     }
 }

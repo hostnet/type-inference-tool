@@ -5,6 +5,7 @@
     "require": {
         "php":                                   ">=7.0",
         "bramus/monolog-colored-line-formatter": "^2.0",
+        "gossi/docblock":                        "^1.5",
         "monolog/monolog":                       "^1.22",
         "nikic/php-parser":                      "^3.0",
         "sebastian/diff":                        "^1.4",
