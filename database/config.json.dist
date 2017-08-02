@@ -1,0 +1,8 @@
+{
+  "driver": "pdo_mysql",
+  "host": "localhost",
+  "dbname": "typeinference",
+  "port": 3304,
+  "user": "root",
+  "password": ""
+}

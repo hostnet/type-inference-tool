@@ -57,8 +57,8 @@ class AnalyzedFunction
      * @param AnalyzedClass $class
      * @param string $function_name
      * @param string|null $return_type
-     * @param AnalyzedParameter[] $parameters
      * @param bool $has_return_declaration
+     * @param AnalyzedParameter[] $parameters
      */
     public function __construct(
         AnalyzedClass $class,

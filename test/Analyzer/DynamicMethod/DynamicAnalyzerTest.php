@@ -5,11 +5,9 @@ declare(strict_types = 1);
  */
 namespace Hostnet\Component\TypeInference\Analyzer\DynamicMethod;
 
-use Hostnet\Component\TypeInference\Analyzer\Data\AnalyzedCall;
-use Hostnet\Component\TypeInference\Analyzer\Data\AnalyzedClass;
-use Hostnet\Component\TypeInference\Analyzer\Data\AnalyzedFunction;
-use Hostnet\Component\TypeInference\Analyzer\Data\Type\NonScalarPhpType;
-use Hostnet\Component\TypeInference\Analyzer\Data\Type\ScalarPhpType;
+use Hostnet\Component\TypeInference\Analyzer\DynamicMethod\Tracer\Parser\Storage\MemoryRecordStorage;
+use Hostnet\Component\TypeInference\Analyzer\DynamicMethod\Tracer\Parser\Storage\RecordStorageInterface;
+use Hostnet\Component\TypeInference\Analyzer\ProjectAnalyzer;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -23,57 +21,41 @@ class DynamicAnalyzerTest extends TestCase
     private $analyzer;
 
     /**
+     * @var RecordStorageInterface
+     */
+    private $storage;
+
+    /**
      * @var string
      */
     private $example_project_dir;
 
     protected function setUp()
     {
-         $this->analyzer            = new DynamicAnalyzer();
-         $this->example_project_dir = dirname(__DIR__, 2) . '/Fixtures/ExampleDynamicAnalysis/Example-Project-1';
+        $this->storage             = new MemoryRecordStorage();
+        $this->analyzer            = new DynamicAnalyzer($this->storage, [ProjectAnalyzer::VENDOR_FOLDER]);
+        $this->example_project_dir = dirname(__DIR__, 2) . '/Fixtures/ExampleDynamicAnalysis/Example-Project-1';
     }
 
     public function testDynamicAnalyzerGeneratesAnalyzedFunctions()
     {
-        $results    = $this->analyzer->collectAnalyzedFunctions($this->example_project_dir);
-        $call_int   = new AnalyzedCall([new ScalarPhpType(ScalarPhpType::TYPE_INT)]);
-        $call_float = new AnalyzedCall([new ScalarPhpType(ScalarPhpType::TYPE_FLOAT)]);
-        $call_cb    = new AnalyzedCall([new NonScalarPhpType('', 'callable', '', null, [], [])]);
+        $results = $this->analyzer->collectAnalyzedFunctions($this->example_project_dir);
 
-        $some_obj              = new AnalyzedClass(
-            'ExampleProject',
-            'SomeObject',
-            $this->example_project_dir . '/src/SomeObject.php',
-            null,
-            [],
-            ['__construct', 'executeCallback']
-        );
-        $some_object_construct = new AnalyzedFunction($some_obj, '__construct');
-        $some_object_construct->addAllCollectedArguments([$call_int, $call_int, $call_int, $call_int, $call_int,
-            $call_float, $call_int, $call_int, $call_int, $call_int]);
-        $some_object_callback = new AnalyzedFunction($some_obj, 'executeCallback');
-        $some_object_callback->addAllCollectedArguments([$call_cb, $call_cb, $call_cb, $call_cb, $call_cb, $call_cb,
-            $call_cb, $call_cb, $call_cb, $call_cb]);
+        self::assertCount(39, $results);
 
-        $some_obj_a              = new AnalyzedClass(
-            'ExampleProject\A',
-            'SomeObject',
-            $this->example_project_dir . '/src/A/SomeObject.php',
-            null,
-            [],
-            ['__construct', 'executeCallback']
-        );
-        $some_object_a_construct = new AnalyzedFunction($some_obj_a, '__construct');
-        $some_object_a_construct->addAllCollectedArguments([$call_int, $call_int, $call_int, $call_int, $call_int,
-            $call_int, $call_int, $call_int]);
-        $some_object_a_callback = new AnalyzedFunction($some_obj_a, 'executeCallback');
-        $some_object_a_callback->addAllCollectedArguments([$call_cb, $call_cb, $call_cb, $call_cb, $call_cb, $call_cb,
-            $call_cb, $call_cb]);
+        $count = 0;
+        $this->storage->loopEntryRecords(function () use (&$count) {
+            $count++;
+        });
+        self::assertGreaterThan(0, $count);
 
-        self::assertCount(28, $results);
-        self::assertEquals($some_object_construct, $results[0]);
-        self::assertEquals($some_object_callback, $results[1]);
-        self::assertEquals($some_object_a_construct, $results[2]);
-        self::assertEquals($some_object_a_callback, $results[3]);
+        unset($this->analyzer);
+
+        $count = 0;
+        $this->storage->loopEntryRecords(function () use (&$count) {
+            $count++;
+        });
+
+        self::assertSame(0, $count);
     }
 }

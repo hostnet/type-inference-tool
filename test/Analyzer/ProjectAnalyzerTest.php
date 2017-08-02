@@ -14,6 +14,9 @@ use Hostnet\Component\TypeInference\Analyzer\Data\Type\NonScalarPhpType;
 use Hostnet\Component\TypeInference\Analyzer\Data\Type\PhpTypeInterface;
 use Hostnet\Component\TypeInference\Analyzer\Data\Type\ScalarPhpType;
 use Hostnet\Component\TypeInference\Analyzer\Data\Type\UnresolvablePhpType;
+use Hostnet\Component\TypeInference\Analyzer\DynamicMethod\DynamicAnalyzer;
+use Hostnet\Component\TypeInference\Analyzer\DynamicMethod\Tracer\Parser\Storage\MemoryRecordStorage;
+use Hostnet\Component\TypeInference\Analyzer\StaticMethod\StaticAnalyzer;
 use Hostnet\Component\TypeInference\CodeEditor\Instruction\ReturnTypeInstruction;
 use Hostnet\Component\TypeInference\CodeEditor\Instruction\TypeHintInstruction;
 use Monolog\Handler\StreamHandler;
@@ -42,7 +45,7 @@ class ProjectAnalyzerTest extends TestCase
 
     protected function setUp()
     {
-        $this->project_analyzer  = new ProjectAnalyzer();
+        $this->project_analyzer  = new ProjectAnalyzer(null, [ProjectAnalyzer::VENDOR_FOLDER]);
         $this->analyzed_function = new AnalyzedFunction(
             new AnalyzedClass('Namespace', 'SomeClass', '', null, [], ['fn']),
             'fn'
@@ -131,6 +134,33 @@ class ProjectAnalyzerTest extends TestCase
 
         $child_class        = new AnalyzedClass('Namespace', 'Class1', 'file1.php', null, [$interface], ['foobar']);
         $child_class_method = new AnalyzedFunction($child_class, 'foobar');
+        $child_class_method->addCollectedReturn(new AnalyzedReturn(new ScalarPhpType(ScalarPhpType::TYPE_BOOL)));
+
+        $this->addFunctionAnalyserMock([$interface_method, $child_class_method]);
+        $instructions = $this->project_analyzer->analyse($this->target_project);
+
+        self::assertEmpty($instructions);
+    }
+
+    public function testWhenParentFunctionHasLessParamsThanChildThenSkipCovarianceCheckForThatParam()
+    {
+        $interface        = new AnalyzedClass('Namespace', 'SomeClassInterface', 'file1.php', null, [], ['foobar']);
+        $interface_method = new AnalyzedFunction(
+            $interface,
+            'foobar',
+            ScalarPhpType::TYPE_STRING,
+            true,
+            [new AnalyzedParameter('arg')]
+        );
+
+        $child_class        = new AnalyzedClass('Namespace', 'Class1', 'file1.php', null, [$interface], ['foobar']);
+        $child_class_method = new AnalyzedFunction(
+            $child_class,
+            'foobar',
+            null,
+            false,
+            [new AnalyzedParameter('arg'), new AnalyzedParameter('arg')]
+        );
         $child_class_method->addCollectedReturn(new AnalyzedReturn(new ScalarPhpType(ScalarPhpType::TYPE_BOOL)));
 
         $this->addFunctionAnalyserMock([$interface_method, $child_class_method]);
@@ -289,6 +319,26 @@ class ProjectAnalyzerTest extends TestCase
         self::assertContains('TYPE_HINT', $logs);
         self::assertContains('RETURN_TYPE', $logs);
         self::assertContains('IMMUTABLE_FUNCTION', $logs);
+    }
+
+    public function testWhenClassIsSubClassOfVendorThenDoNotAddTypeHintsToVendorClass()
+    {
+        $target_project   = dirname(__DIR__) . '/Fixtures/ExampleDynamicAnalysis/Example-Project-1';
+        $ignored_folders  = [ProjectAnalyzer::VENDOR_FOLDER];
+        $project_analyzer = new ProjectAnalyzer();
+        $dynamic_analyzer = new DynamicAnalyzer(new MemoryRecordStorage(), $ignored_folders);
+        $static_analyzer  = new StaticAnalyzer($ignored_folders);
+
+        $project_analyzer->setIgnoredFolders($ignored_folders);
+        $project_analyzer->addAnalyzer($dynamic_analyzer);
+        $project_analyzer->addAnalyzer($static_analyzer);
+        $instructions = $project_analyzer->analyse($target_project);
+
+        foreach ($instructions as $instruction) {
+            if ($instruction instanceof TypeHintInstruction) {
+                self::assertNotSame('getValue', $instruction->getTargetFunctionName());
+            }
+        }
     }
 
     public function analyzedFunctionsReturnTypeDataProvider(): array

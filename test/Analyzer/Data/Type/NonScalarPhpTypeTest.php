@@ -67,4 +67,26 @@ class NonScalarPhpTypeTest extends TestCase
         self::assertInstanceOf(UnresolvablePhpType::class, $common_parent);
         self::assertSame(UnresolvablePhpType::INCONSISTENT, $common_parent->getName());
     }
+
+    public function testGetCommonParentShouldBeUnresolvedWhenTypesContainUnresolvable()
+    {
+        $return_types = [
+            new AnalyzedClass('Namespace', 'SomeClass', '', null, []),
+            new UnresolvablePhpType(UnresolvablePhpType::NONE)
+        ];
+
+        self::assertInstanceOf(UnresolvablePhpType::class, NonScalarPhpType::getCommonParent($return_types));
+    }
+
+    public function testGetCommonParentShouldBeUnresolvedWhenContainingScalarAndNonScalarTypes()
+    {
+        $types = [
+            new NonScalarPhpType(null, 'array', null, null, [], []),
+            new ScalarPhpType(ScalarPhpType::TYPE_STRING),
+            new ScalarPhpType(ScalarPhpType::TYPE_STRING),
+            new ScalarPhpType(ScalarPhpType::TYPE_STRING)
+        ];
+
+        self::assertInstanceOf(UnresolvablePhpType::class, NonScalarPhpType::getCommonParent($types));
+    }
 }

@@ -131,4 +131,9 @@ class SomeClassTest extends TestCase
     {
         self::assertSame($this->string, $this->some_class->foobar($this->string));
     }
+
+    public function testOverwrittenMethod()
+    {
+        self::assertSame(72, $this->some_class::getValue(66));
+    }
 }

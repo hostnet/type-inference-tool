@@ -30,13 +30,23 @@ final class NonScalarPhpType extends AnalyzedClass implements PhpTypeInterface
      */
     public static function getCommonParent(array $returns): PhpTypeInterface
     {
-        $all_parent_types = [];
+        $all_parent_types    = [];
+        $contains_scalar     = false;
+        $contains_non_scalar = false;
 
         foreach ($returns as $return) {
             if ($return instanceof AnalyzedClass) {
                 $all_parent_types[] = $return->getParents();
             }
-            if ($return instanceof UnresolvablePhpType) {
+
+            if ($return instanceof NonScalarPhpType) {
+                $contains_non_scalar = true;
+            }
+            if ($return instanceof ScalarPhpType) {
+                $contains_scalar = true;
+            }
+
+            if (($contains_non_scalar && $contains_scalar) || $return instanceof UnresolvablePhpType) {
                 return new UnresolvablePhpType(UnresolvablePhpType::INCONSISTENT);
             }
         }

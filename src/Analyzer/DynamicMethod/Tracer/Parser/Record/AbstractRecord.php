@@ -39,9 +39,9 @@ abstract class AbstractRecord
     }
 
     /**
-     * @return string
+     * @return string|null
      */
-    public function getFunctionDeclarationFile(): string
+    public function getFunctionDeclarationFile(): ?string
     {
         return $this->function_declaration_file;
     }

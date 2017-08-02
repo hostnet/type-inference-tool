@@ -78,13 +78,20 @@ final class ReturnTypeInstruction extends AbstractInstruction
     {
         $type                = $this->target_return_type;
         $type_representation = $type instanceof NonScalarPhpType ? $type->getClassName() : $type->getName();
+        $updated_file        = preg_replace_callback(
+            sprintf(
+                '/function %s\([\n\s\w\W]*?\)(?=(:[\\\\\w\s]+)?\s*(?=[{;]))/',
+                preg_quote($this->getTargetFunctionName(), '/')
+            ),
+            function ($matches) use ($type_representation) {
+                if (count($matches) > 1) {
+                    return $matches[0];
+                }
 
-        $pattern      = sprintf(
-            '/function %s\((\n(\s*|\w*|\W*)*)*.*\)(?!:\s*(\\\\)?\w+)/',
-            $this->getTargetFunctionName()
+                return $matches[0] . ': ' . $type_representation;
+            },
+            $file->getContents()
         );
-        $replacement  = sprintf('$0: %s', $type_representation);
-        $updated_file = preg_replace($pattern, $replacement, $file->getContents());
 
         if (strcmp($updated_file, $file->getContents()) === 0) {
             throw new \RuntimeException('Could not add return type declaration, there might already be one.');

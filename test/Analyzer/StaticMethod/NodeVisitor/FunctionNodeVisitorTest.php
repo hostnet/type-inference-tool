@@ -14,6 +14,7 @@ use PhpParser\Node;
 use PhpParser\Node\Expr\ConstFetch;
 use PhpParser\Node\Name;
 use PhpParser\Node\Name\FullyQualified;
+use PhpParser\Node\NullableType;
 use PhpParser\Node\Param;
 use PhpParser\Node\Scalar\LNumber;
 use PhpParser\Node\Scalar\String_;
@@ -73,7 +74,14 @@ class FunctionNodeVisitorTest extends TestCase
         $this->createAbstractSyntaxTree();
         $this->file         = '/path/SomeFile.php';
         $this->collection   = new AnalyzedFunctionCollection();
-        $this->node_visitor = new FunctionNodeVisitor($this->collection, $this->file);
+        $function_index     = [
+            '\\\\AbstractSomeClass' => [
+                'path' => null,
+                'methods' => [],
+                'parents' => [],
+            ]
+        ];
+        $this->node_visitor = new FunctionNodeVisitor($this->collection, $this->file, $function_index);
     }
 
     public function testBeforeTraverseShouldSetTheFileNameAndAddAnalyzedFunctionToCollection()
@@ -134,6 +142,23 @@ class FunctionNodeVisitorTest extends TestCase
         self::assertFalse($results[0]->getDefinedParameters()[1]->hasTypeHint());
         self::assertTrue($results[0]->getDefinedParameters()[1]->hasDefaultValue());
         self::assertSame($docblock, $results[0]->getDocblock()->toString());
+    }
+
+    public function testWhenFunctionReturnsNullableThenUseCorrectType()
+    {
+        $this->method_node = new ClassMethod('foobar', [
+            'params' => [
+                new Param('arg0', new ConstFetch(new Name('true')), 'bool')
+            ],
+            'returnType' => new NullableType(new Name('SomeObject')),
+            'type' => 1,
+            'stmts' => [$this->return_node]
+        ], []);
+
+        $this->traverseTree();
+        $results = $this->collection->getAll();
+
+        self::assertSame('SomeObject', $results[0]->getDefinedReturnType());
     }
 
     /**

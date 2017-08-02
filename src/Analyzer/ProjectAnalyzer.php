@@ -58,11 +58,18 @@ class ProjectAnalyzer
     private $analyzed_function_collection;
 
     /**
-     * @param LoggerInterface $logger
+     * @var string[]
      */
-    public function __construct(LoggerInterface $logger = null)
+    private $ignored_folders;
+
+    /**
+     * @param LoggerInterface $logger
+     * @param string[] $ignored_folders
+     */
+    public function __construct(LoggerInterface $logger = null, array $ignored_folders = [])
     {
-        $this->logger = $logger ?? new NullLogger();
+        $this->logger          = $logger ?? new NullLogger();
+        $this->ignored_folders = $ignored_folders;
     }
 
     /**
@@ -118,7 +125,7 @@ class ProjectAnalyzer
 
         foreach ($analyzed_functions_collection as $analyzed_function) {
             $overridden_classes = $analyzed_functions_collection->getFunctionParents($analyzed_function);
-            if ($this->containsVendorClass($overridden_classes)) {
+            if ($this->containsIgnoredClass($overridden_classes)) {
                 $this->logImmutableParent($analyzed_function, $overridden_classes);
                 continue;
             }
@@ -398,9 +405,12 @@ class ProjectAnalyzer
                         continue;
                     }
 
-                    if ($function_parameter->getType() ===
-                        $parent_function->getDefinedParameters()[$i]->getType()
-                    ) {
+                    $parent_parameters = $parent_function->getDefinedParameters();
+                    if (!array_key_exists($i, $parent_parameters)) {
+                        continue;
+                    }
+
+                    if ($function_parameter->getType() === $parent_parameters[$i]->getType()) {
                         continue;
                     }
 
@@ -587,21 +597,34 @@ class ProjectAnalyzer
     }
 
     /**
-     * Returns whether at least one AnalyzedClass in the given array is a
-     * vendor class.
+     * Returns whether at least one AnalyzedClass in the given array is
+     * either a vendor class or in a folder that is being ignored.
      *
      * @param AnalyzedClass[] $analyzed_classes
      * @return bool
      */
-    private function containsVendorClass(array $analyzed_classes): bool
+    private function containsIgnoredClass(array $analyzed_classes): bool
     {
-        foreach ($analyzed_classes as $analyzed_class) {
-            if ($this->isInFolder($analyzed_class->getFullPath(), self::VENDOR_FOLDER)) {
-                return true;
+        foreach ($this->ignored_folders as $ignored_folder) {
+            foreach ($analyzed_classes as $analyzed_class) {
+                if ($this->isInFolder($analyzed_class->getFullPath(), $ignored_folder)) {
+                    return true;
+                }
             }
         }
 
         return false;
+    }
+
+    /**
+     * Set folder to be ignored. Files inside these ignored folders will not
+     * be modified.
+     *
+     * @param string[] $ignored_folders
+     */
+    public function setIgnoredFolders(array $ignored_folders)
+    {
+        $this->ignored_folders = $ignored_folders;
     }
 
     /**
@@ -661,7 +684,7 @@ class ProjectAnalyzer
 
         $this->logger->warning(
             "IMMUTABLE_FUNCTION: Cannot modify '{fqcn}::{function}' because the function inherits" .
-            ' from one or more vendor classes: {parents}',
+            ' from one or more vendor or ignored classes: {parents}',
             [
                 'fqcn' => $analyzed_function->getClass()->getFqcn(),
                 'function' => $analyzed_function->getFunctionName(),

@@ -14,23 +14,23 @@ final class ReturnRecord extends AbstractRecord
     /**
      * @var string
      */
-    private $return_value;
+    private $return_type;
 
     /**
      * @param int $number
-     * @param string $return_value
+     * @param string $return_type
      */
-    public function __construct(int $number, string $return_value)
+    public function __construct(int $number, string $return_type)
     {
         parent::__construct($number);
-        $this->return_value = $return_value;
+        $this->return_type = $return_type;
     }
 
     /**
      * @return string
      */
-    public function getReturnValue(): string
+    public function getReturnType(): string
     {
-        return $this->return_value;
+        return $this->return_type;
     }
 }

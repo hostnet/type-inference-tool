@@ -3,7 +3,7 @@ declare(strict_types = 1);
 
 namespace ExampleProject;
 
-class SomeClass implements SomeClassInterface
+class SomeClass extends ShouldBeIgnored implements SomeClassInterface
 {
     private $string;
     private $int;
@@ -154,6 +154,16 @@ class SomeClass implements SomeClassInterface
 
     public function foobar($arg)
     {
+        $util = new Util();
+        $util->doCalculation();
         return $arg;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public static function getValue($int)
+    {
+        return 6 + $int;
     }
 }

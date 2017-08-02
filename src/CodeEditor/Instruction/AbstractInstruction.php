@@ -6,6 +6,7 @@ declare(strict_types = 1);
 namespace Hostnet\Component\TypeInference\CodeEditor\Instruction;
 
 use Hostnet\Component\TypeInference\Analyzer\Data\AnalyzedClass;
+use Hostnet\Component\TypeInference\Analyzer\ProjectAnalyzer;
 use Hostnet\Component\TypeInference\CodeEditor\CodeEditorFile;
 use Symfony\Component\Filesystem\Exception\IOException;
 use Symfony\Component\Filesystem\Filesystem;
@@ -63,7 +64,13 @@ abstract class AbstractInstruction
     protected function retrieveFileToModify(string $target_project): CodeEditorFile
     {
         $finder = new Finder();
-        $finder->files()->in($target_project)->exclude('vendor');
+        $finder
+            ->files()
+            ->in($target_project)
+            ->filter(function (\SplFileInfo $e) {
+                    return $e->getExtension() === 'php';
+            })
+            ->exclude(ProjectAnalyzer::VENDOR_FOLDER);
 
         foreach ($finder as $file) {
             $file_contents = $file->getContents();

@@ -6,6 +6,8 @@ declare(strict_types = 1);
 namespace Hostnet\Component\TypeInference\Analyzer\DynamicMethod\Tracer;
 
 use Hostnet\Component\TypeInference\Analyzer\DynamicMethod\Bootstrap\BootstrapGenerator;
+use Psr\Log\LoggerInterface;
+use Psr\Log\NullLogger;
 use Symfony\Component\Filesystem\Exception\IOException;
 
 /**
@@ -14,6 +16,7 @@ use Symfony\Component\Filesystem\Exception\IOException;
  */
 class Tracer
 {
+    const LOG_PREFIX            = 'TRACER: ';
     const DEFAULT_TEST_FOLDER   = 'test';
     const OUTPUT_FOLDER_NAME    = '/output/';
     const OUTPUT_BOOTSTRAP_NAME = 'generated_autoload';
@@ -21,6 +24,9 @@ class Tracer
     private $settings = [
         'xdebug.collect_params' => '1',
         'xdebug.collect_return' => '1',
+        'xdebug.collect_includes' => '0',
+        'xdebug.coverage_enable' => '0',
+        'xdebug.extended_info' => '0',
     ];
 
     /**
@@ -49,17 +55,22 @@ class Tracer
     private $output_trace_name;
 
     /**
+     * @var LoggerInterface
+     */
+    private $logger;
+
+    /**
      * @param string $output_dir
      * @param string $target_project_directory
      * @param string $inferrer_directory
+     * @param LoggerInterface $logger
      * @param string $test_folder
      */
     public function __construct(
         string $output_dir,
         string $target_project_directory,
-        // TODO - Should be removed
         string $inferrer_directory,
-        // TODO - Should be removed
+        LoggerInterface $logger,
         string $test_folder = self::DEFAULT_TEST_FOLDER
     ) {
         $this->output_directory         = $output_dir;
@@ -68,6 +79,7 @@ class Tracer
         $this->test_folder              = '/' . $test_folder;
         $this->output_trace_name        = uniqid(BootstrapGenerator::TRACE_FILE_NAME, false);
         $this->output_bootstrap_name    = uniqid(self::OUTPUT_BOOTSTRAP_NAME, false);
+        $this->logger                   = $logger;
     }
 
     /**
@@ -79,7 +91,9 @@ class Tracer
     public function generateTrace()
     {
         $this->createBootstrapFile($this->output_directory);
+        $this->logger->debug(self::LOG_PREFIX . 'Started running target project unit tests...');
         exec($this->getExecuteCommand());
+        $this->logger->debug(self::LOG_PREFIX . 'Unit tests finished and trace generated');
     }
 
     /**

@@ -6,6 +6,7 @@ declare(strict_types = 1);
 namespace Hostnet\Component\TypeInference\Analyzer\DynamicMethod\Tracer;
 
 use PHPUnit\Framework\TestCase;
+use Psr\Log\NullLogger;
 use Symfony\Component\Filesystem\Filesystem;
 
 /**
@@ -23,16 +24,26 @@ class TracerTest extends TestCase
      */
     private $file_system;
 
+    /**
+     * @var string
+     */
+    private $bootstrap_path;
+
+    /**
+     * @var string
+     */
+    private $trace_path;
+
     protected function setUp()
     {
         $this->output_directory = __DIR__ . '/output/';
         $this->file_system      = new Filesystem();
-        $this->file_system->remove($this->output_directory);
     }
 
     protected function tearDown()
     {
-        $this->file_system->remove($this->output_directory);
+        $this->file_system->remove($this->trace_path);
+        $this->file_system->remove($this->bootstrap_path);
     }
 
     public function testGenerateTraceShouldGenerateABootstrapAndTraces()
@@ -41,10 +52,14 @@ class TracerTest extends TestCase
         $fixtures       = dirname(__DIR__, 3) . '/Fixtures';
         $target_project = $fixtures . $project;
         $inferrer_dir   = dirname(__DIR__, 4);
-        $tracer         = new Tracer($this->output_directory, $target_project, $inferrer_dir);
+        $tracer         = new Tracer($this->output_directory, $target_project, $inferrer_dir, new NullLogger());
         $tracer->generateTrace();
 
-        self::assertFileExists($tracer->getFullOutputBootstrapPath());
-        self::assertFileExists($tracer->getFullOutputTracePath());
+
+        $this->trace_path     = $tracer->getFullOutputTracePath();
+        $this->bootstrap_path = $tracer->getFullOutputBootstrapPath();
+
+        self::assertFileExists($this->bootstrap_path);
+        self::assertFileExists($this->trace_path);
     }
 }

@@ -8,6 +8,7 @@ namespace Hostnet\Component\TypeInference\Analyzer\StaticMethod;
 use Hostnet\Component\TypeInference\Analyzer\Data\AnalyzedClass;
 use Hostnet\Component\TypeInference\Analyzer\Data\AnalyzedFunction;
 use Hostnet\Component\TypeInference\Analyzer\Data\AnalyzedParameter;
+use Hostnet\Component\TypeInference\Analyzer\ProjectAnalyzer;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -27,7 +28,7 @@ class StaticAnalyzerTest extends TestCase
 
     public function testStaticAnalyzerGeneratesAnalyzedFunctions()
     {
-        $analyzer = new StaticAnalyzer();
+        $analyzer = new StaticAnalyzer([ProjectAnalyzer::VENDOR_FOLDER]);
         $results  = $analyzer->collectAnalyzedFunctions($this->example_project_directory);
 
         $abstract_foo  = new AnalyzedClass(
@@ -75,5 +76,37 @@ class StaticAnalyzerTest extends TestCase
         self::assertContains($foo_interface_get_foo, $results, false, false, false);
         self::assertContains($abstract_foo_do_something, $results, false, false, false);
         self::assertContains($abstract_foo_foobar, $results, false, false, false);
+    }
+
+    public function testListAllMethodsShouldRetrieveAllMethodNamesOfTheGivenClassAndItsParents()
+    {
+        $function_index = [
+            'ExampleProject\\SomeClass' => [
+                'path' => 'src/SomeClass.php',
+                'methods' => ['fn1', 'fn2'],
+                'parents' => ['ExampleProject\\SomeClassInterface', 'SomeVendor\\AbstractSomeClass']
+            ],
+            'ExampleProject\\SomeClassInterface' => [
+                'path' => 'src/SomeClassInterface.php',
+                'methods' => ['fn3', 'fn4'],
+                'parents' => []
+            ],
+            'SomeVendor\\AbstractSomeClass' => [
+                'path' => 'vendor/AbstractSomeClass.php',
+                'methods' => ['fn5', 'fn6'],
+                'parents' => ['HelloWorld\\AnotherClass']
+            ],
+            'HelloWorld\\AnotherClass' => [
+                'path' => 'vendor/HelloWorld/AnotherClass.php',
+                'methods' => ['fn7', 'fn8'],
+                'parents' => ['ExampleProject\\RandomClass']
+            ],
+        ];
+
+        $fqcn             = 'ExampleProject\\SomeClass';
+        $methods          = StaticAnalyzer::listAllMethods($function_index, $fqcn);
+        $expected_methods = ['fn1', 'fn2', 'fn3', 'fn4', 'fn5', 'fn6', 'fn7','fn8'];
+
+        self::assertEquals($expected_methods, $methods);
     }
 }

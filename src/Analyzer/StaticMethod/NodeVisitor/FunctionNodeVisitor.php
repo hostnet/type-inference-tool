@@ -11,13 +11,16 @@ use Hostnet\Component\TypeInference\Analyzer\Data\AnalyzedFunction;
 use Hostnet\Component\TypeInference\Analyzer\Data\AnalyzedFunctionCollection;
 use Hostnet\Component\TypeInference\Analyzer\Data\AnalyzedParameter;
 use Hostnet\Component\TypeInference\Analyzer\DynamicMethod\Tracer\Parser\Mapper\TracerPhpTypeMapper;
+use Hostnet\Component\TypeInference\Analyzer\StaticMethod\StaticAnalyzer;
 use PhpParser\Node;
 use PhpParser\Node\Name;
 use PhpParser\Node\Name\FullyQualified;
+use PhpParser\Node\NullableType;
 use PhpParser\Node\Stmt\Class_;
 use PhpParser\Node\Stmt\ClassMethod;
 use PhpParser\Node\Stmt\Interface_;
 use PhpParser\Node\Stmt\Namespace_;
+use PhpParser\Node\Stmt\Trait_;
 
 /**
  * Node visitor used to collect classes, methods, extends and implements.
@@ -47,14 +50,24 @@ final class FunctionNodeVisitor extends AbstractAnalyzingNodeVisitor
     private $current_function = -1;
 
     /**
+     * @var string[] ['fqcn' => ['functions']]
+     */
+    private $function_index;
+
+    /**
      * @param AnalyzedFunctionCollection $analyzed_function_collection
      * @param string $file_path
+     * @param string[] $function_index
      */
-    public function __construct(AnalyzedFunctionCollection $analyzed_function_collection, string $file_path)
-    {
+    public function __construct(
+        AnalyzedFunctionCollection $analyzed_function_collection,
+        string $file_path,
+        array &$function_index = []
+    ) {
         parent::__construct($analyzed_function_collection);
-        $this->file_path     = $file_path;
-        $this->current_class = new AnalyzedClass();
+        $this->file_path      = $file_path;
+        $this->current_class  = new AnalyzedClass();
+        $this->function_index = $function_index;
     }
 
     /**
@@ -133,7 +146,7 @@ final class FunctionNodeVisitor extends AbstractAnalyzingNodeVisitor
      */
     private function handleClassOrInterfaceNode(Node $node)
     {
-        if (!$node instanceof Class_ && !$node instanceof Interface_) {
+        if (!$node instanceof Class_ && !$node instanceof Interface_ && !$node instanceof Trait_) {
             return;
         }
 
@@ -143,15 +156,40 @@ final class FunctionNodeVisitor extends AbstractAnalyzingNodeVisitor
             $extended_class = is_array($node->extends) ? implode('\\', $node->extends) : $node->extends->toString();
 
             list($namespace, $class_name) = TracerPhpTypeMapper::extractTraceFunctionName($extended_class);
-            $this->current_class->setExtends(new AnalyzedClass($namespace, $class_name));
+            list($file_path, $functions)  = $this->listMethodsForChild($namespace, $class_name);
+
+            $extended_class = new AnalyzedClass($namespace, $class_name, $file_path, null, [], $functions);
+            $this->current_class->setExtends($extended_class);
         }
 
         if (in_array('implements', $node->getSubNodeNames(), true) && count($node->implements) > 0) {
             $this->current_class->setImplements(array_map(function (Name $interface) {
                 list($namespace, $class_name) = TracerPhpTypeMapper::extractTraceFunctionName($interface->toString());
-                return new AnalyzedClass($namespace, $class_name);
+                list($file_path, $functions)  = $this->listMethodsForChild($namespace, $class_name);
+                return new AnalyzedClass($namespace, $class_name, $file_path, null, [], $functions);
             }, $node->implements));
         }
+    }
+
+    /**
+     * Returns all methods a class has, including methods inherited
+     * from its parents.
+     *
+     * @param string $namespace
+     * @param string $class_name
+     * @return string[]
+     */
+    private function listMethodsForChild(string $namespace, string $class_name): array
+    {
+        $functions = [];
+        $file_path = null;
+        $fqcn      = $namespace . '\\' . $class_name;
+        if (array_key_exists($fqcn, $this->function_index)) {
+            $indexed_function =  $this->function_index[$fqcn];
+            $file_path        = $indexed_function['path'];
+            $functions        = StaticAnalyzer::listAllMethods($this->function_index, $fqcn);
+        }
+        return [$file_path, $functions];
     }
 
     /**
@@ -162,6 +200,10 @@ final class FunctionNodeVisitor extends AbstractAnalyzingNodeVisitor
      */
     private function getClassMethodReturnType(ClassMethod $class)
     {
+        if ($class->returnType instanceof NullableType) {
+            return $class->returnType->type->toString();
+        }
+
         if ($class->returnType instanceof FullyQualified && $class->returnType !== null) {
             return $class->returnType->toString();
         }

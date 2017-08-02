@@ -22,6 +22,7 @@ use PhpParser\Node\Stmt\Class_;
 use PhpParser\Node\Stmt\ClassMethod;
 use PhpParser\Node\Stmt\Interface_;
 use PhpParser\Node\Stmt\Namespace_;
+use PhpParser\Node\Stmt\Trait_;
 use PhpParser\Node\Stmt\Use_;
 use Symfony\Component\Finder\Finder;
 
@@ -76,7 +77,7 @@ final class DocblockNodeVisitor extends AbstractAnalyzingNodeVisitor
     {
         parent::enterNode($node);
 
-        if ($node instanceof Class_ || $node instanceof Interface_) {
+        if ($node instanceof Class_ || $node instanceof Interface_ || $node instanceof Trait_) {
             $this->class_name = $node->name;
             return;
         }
@@ -115,7 +116,7 @@ final class DocblockNodeVisitor extends AbstractAnalyzingNodeVisitor
 
     /**
      * Adds analyzed data to the AnalyzedFunction of the currently analyzed
-     * function by retrieving parameter- and reutnr type hints from the
+     * function by retrieving parameter- and return type hints from the
      * docblock.
      *
      * @param ClassMethod $class_method
@@ -155,7 +156,12 @@ final class DocblockNodeVisitor extends AbstractAnalyzingNodeVisitor
             return;
         }
 
-        $php_type = $this->resolvePhpType($docblock->getTags('return')->get(0)->getType());
+        try {
+            $php_type = $this->resolvePhpType($docblock->getTags('return')->get(0)->getType());
+        } catch (\Throwable $e) {
+            return;
+        }
+
         $this->getCurrentlyAnalyzingFunction()->addCollectedReturn(new AnalyzedReturn($php_type));
     }
 
@@ -186,7 +192,11 @@ final class DocblockNodeVisitor extends AbstractAnalyzingNodeVisitor
                 }
 
                 if (preg_match(sprintf('/&?\$%s/', $defined_param->getName()), $docblock_param->getVariable())) {
-                    $docblock_types[$i] = $this->resolvePhpType($docblock_param->getType());
+                    try {
+                        $docblock_types[$i] = $this->resolvePhpType($docblock_param->getType());
+                    } catch (\Throwable $e) {
+                        continue;
+                    }
                 }
             }
         }
@@ -212,9 +222,13 @@ final class DocblockNodeVisitor extends AbstractAnalyzingNodeVisitor
         AnalyzedFunction $current_function
     ): Docblock {
         foreach ($current_function_parents as $parent) {
-            $parent_function = $this
-                ->getAnalyzedFunctionCollection()
-                ->get($parent->getFqcn(), $current_function->getFunctionName());
+            try {
+                $parent_function = $this
+                    ->getAnalyzedFunctionCollection()
+                    ->get($parent->getFqcn(), $current_function->getFunctionName());
+            } catch (EntryNotFoundException $e) {
+                continue;
+            }
 
             $parent_doc = $parent_function->getDocblock();
 
@@ -244,8 +258,8 @@ final class DocblockNodeVisitor extends AbstractAnalyzingNodeVisitor
      */
     private function resolvePhpType(string $type_name): PhpTypeInterface
     {
-        if ('mixed' === $type_name) {
-            return new UnresolvablePhpType(UnresolvablePhpType::DOCBLOCK_MULTIPLE, "defined in docblock as 'mixed'");
+        if (in_array($type_name, ['mixed', 'unknown', 'unknown_type'], true)) {
+            return new UnresolvablePhpType(UnresolvablePhpType::DOCBLOCK_MULTIPLE, 'defined in docblock as mixed');
         }
 
         if (strpos($type_name, '|') !== false) {
@@ -255,11 +269,11 @@ final class DocblockNodeVisitor extends AbstractAnalyzingNodeVisitor
             );
         }
 
-        if (strpos($type_name, '[]')) {
+        if (strpos($type_name, '[]') !== false) {
             return new NonScalarPhpType(null, 'array');
         }
 
-        if ('$this' === $type_name) {
+        if ('self' === $type_name || '$this' === $type_name) {
             return TracerPhpTypeMapper::toPhpType($this->namespace . '\\' . $this->class_name);
         }
 

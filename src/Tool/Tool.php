@@ -7,6 +7,10 @@ namespace Hostnet\Component\TypeInference\Tool;
 
 use Bramus\Monolog\Formatter\ColoredLineFormatter;
 use Hostnet\Component\TypeInference\Analyzer\DynamicMethod\DynamicAnalyzer;
+use Hostnet\Component\TypeInference\Analyzer\DynamicMethod\Tracer\Parser\Storage\DatabaseRecordStorage;
+use Hostnet\Component\TypeInference\Analyzer\DynamicMethod\Tracer\Parser\Storage\FileRecordStorage;
+use Hostnet\Component\TypeInference\Analyzer\DynamicMethod\Tracer\Parser\Storage\MemoryRecordStorage;
+use Hostnet\Component\TypeInference\Analyzer\DynamicMethod\Tracer\Parser\Storage\RecordStorageInterface;
 use Hostnet\Component\TypeInference\Analyzer\ProjectAnalyzer;
 use Hostnet\Component\TypeInference\Analyzer\StaticMethod\StaticAnalyzer;
 use Hostnet\Component\TypeInference\CodeEditor\CodeEditor;
@@ -35,16 +39,37 @@ use Symfony\Component\Stopwatch\Stopwatch;
  */
 class Tool extends Command
 {
-    const NAME                = 'Type-Inference-Tool';
-    const EXECUTE_COMMAND     = 'execute';
-    const ARG_TARGET          = 'target';
-    const OPTION_LOG_DIR      = ['log-dir', 'l'];
-    const OPTION_ANALYSE_ONLY = ['analyse-only', 'a'];
-    const OPTION_SHOW_DIFF    = ['show-diff', 'd'];
+    const NAME                   = 'Type-Inference-Tool';
+    const EXECUTE_COMMAND        = 'execute';
+    const ARG_TARGET             = 'target';
+    const OPTION_LOG_DIR         = ['log-dir', 'l'];
+    const OPTION_ANALYSE_ONLY    = ['analyse-only', 'a'];
+    const OPTION_SHOW_DIFF       = ['show-diff', 'd'];
+    const OPTION_STORAGE_TYPE    = ['storage-type', 's'];
+    const OPTION_DATABASE_CONFIG = ['db-config', 'db'];
+    const OPTION_IGNORE_FOLDERS  = ['ignore-folders', 'i'];
+    const OPTION_TRACE           = ['trace', 't'];
+
+    const STORAGE_TYPE_MEMORY   = 'mem';
+    const STORAGE_TYPE_DATABASE = 'db';
+    const STORAGE_TYPE_FILE     = 'file';
+
+    const STORAGE_TYPES = [
+        'memory' => self::STORAGE_TYPE_MEMORY,
+        'database' => self::STORAGE_TYPE_DATABASE,
+        'file' => self::STORAGE_TYPE_FILE,
+    ];
 
     const RESULTS_COLUMN_RETURN_TYPES = 'Return types';
     const RESULTS_COLUMN_TYPE_HINTS   = 'Type hints';
     const RESULTS_COLUMN_TOTAL        = 'Total';
+
+    /**
+     * Unique instance ID used to handle database concurrency.
+     *
+     * @var string
+     */
+    private static $execution_id;
 
     /**
      * @var CodeEditor
@@ -105,6 +130,34 @@ class Tool extends Command
                 self::OPTION_SHOW_DIFF[1],
                 InputOption::VALUE_NONE,
                 'Show diffs after modifying target project files.'
+            )
+            ->addOption(
+                self::OPTION_STORAGE_TYPE[0],
+                self::OPTION_STORAGE_TYPE[1],
+                InputOption::VALUE_REQUIRED,
+                'Define the storage type data used internally by the application. mem=Memory (default) db=Database (you'
+                . ' must provide database config) file=External file',
+                self::STORAGE_TYPE_MEMORY
+            )
+            ->addOption(
+                self::OPTION_DATABASE_CONFIG[0],
+                self::OPTION_DATABASE_CONFIG[1],
+                InputOption::VALUE_OPTIONAL,
+                'In case the storage type has been set for database, a database configuration file must be provided.'
+            )
+            ->addOption(
+                self::OPTION_IGNORE_FOLDERS[0],
+                self::OPTION_IGNORE_FOLDERS[1],
+                InputOption::VALUE_REQUIRED,
+                "Specify folders to be ignored during analysis (comma separated, e.g.: 'folder1,folder2,etc'). "
+                . 'The vendor folder is always ignored.'
+            )
+            ->addOption(
+                self::OPTION_TRACE[0],
+                self::OPTION_TRACE[1],
+                InputOption::VALUE_REQUIRED,
+                'Specify existing trace to use during dynamic analysis. By specifying a trace, dynamic analysis won\'t'
+                . ' generate a new one.'
             );
     }
 
@@ -125,9 +178,34 @@ class Tool extends Command
 
         $target_project = $input->getArgument(self::ARG_TARGET);
         $logger         = $this->getLogger($input->getOption(self::OPTION_LOG_DIR[0]));
-        $logger->info('Type-Inference-Tool started for ' . $target_project);
+        $logger->info(
+            "Type-Inference-Tool started for {project} (execution_id: '{id}')",
+            [
+                'project' => $target_project,
+                'id' => self::getExecutionId()
+            ]
+        );
 
-        $modification_instructions = $this->analyseProject($target_project, $logger);
+        $storage = $this->getDataStorageType(
+            $input->getOption(self::OPTION_STORAGE_TYPE[0]),
+            $input->getOption(self::OPTION_DATABASE_CONFIG[0])
+        );
+
+        $ignored_folders      = [ProjectAnalyzer::VENDOR_FOLDER];
+        $user_ignored_folders = $input->getOption(self::OPTION_IGNORE_FOLDERS[0]);
+
+        if ($user_ignored_folders !== null) {
+            $ignored_folders = array_merge($ignored_folders, explode(',', $user_ignored_folders));
+            $this->project_analyzer->setIgnoredFolders($ignored_folders);
+        }
+
+        $modification_instructions = $this->analyseProject(
+            $target_project,
+            $logger,
+            $storage,
+            $ignored_folders,
+            $input->getOption(self::OPTION_TRACE[0])
+        );
 
         $overwrite_files = !$input->getOption(self::OPTION_ANALYSE_ONLY[0]);
         $this->applyInstructions(
@@ -140,6 +218,31 @@ class Tool extends Command
         $this->io->success('Done!');
         $this->printResults();
         $this->outputStatistics($stopwatch, $logger);
+    }
+
+    /**
+     * Sets the storage type for the ProjectAnalyzer.
+     * @param $storage_type
+     * @param $db_config_location
+     * @throws \InvalidArgumentException
+     * @return RecordStorageInterface
+     */
+    private function getDataStorageType(string $storage_type, $db_config_location): RecordStorageInterface
+    {
+        if (!in_array($storage_type, self::STORAGE_TYPES, true)) {
+            throw new \InvalidArgumentException(sprintf("Invalid storage type '%s' provided.", $storage_type));
+        }
+        if ($storage_type === self::STORAGE_TYPE_DATABASE && $db_config_location === null) {
+            throw new \InvalidArgumentException('No database config provided for database storage.');
+        }
+
+        if ($storage_type === self::STORAGE_TYPE_DATABASE) {
+            return new DatabaseRecordStorage($db_config_location);
+        }
+        if ($storage_type === self::STORAGE_TYPE_FILE) {
+            return new FileRecordStorage();
+        }
+        return new MemoryRecordStorage();
     }
 
     /**
@@ -209,16 +312,23 @@ class Tool extends Command
      *
      * @param string $target_project
      * @param LoggerInterface $logger
+     * @param RecordStorageInterface $storage
+     * @param string[] $ignored_folders
+     * @param string $trace
      * @return AbstractInstruction[]
-     * @throws \InvalidArgumentException
      */
-    private function analyseProject(string $target_project, LoggerInterface $logger): array
-    {
+    private function analyseProject(
+        string $target_project,
+        LoggerInterface $logger,
+        RecordStorageInterface $storage,
+        array $ignored_folders,
+        string $trace = null
+    ): array {
         $this->io->text(sprintf('<info>Started analysing %s</info>', $target_project));
 
         $this->project_analyzer->setLogger($logger);
-        $this->project_analyzer->addAnalyzer(new DynamicAnalyzer($logger));
-        $this->project_analyzer->addAnalyzer(new StaticAnalyzer($logger));
+        $this->project_analyzer->addAnalyzer(new DynamicAnalyzer($storage, $ignored_folders, $logger, $trace));
+        $this->project_analyzer->addAnalyzer(new StaticAnalyzer($ignored_folders, $logger));
 
         return $this->project_analyzer->analyse($target_project);
     }
@@ -245,7 +355,9 @@ class Tool extends Command
         if ($show_diff) {
             $this->enableDiffOutput();
         }
+
         $this->code_editor->setInstructions($instructions);
+        $this->io->newLine();
         $this->code_editor->applyInstructions($target_project, $overwrite_files);
     }
 
@@ -276,5 +388,13 @@ class Tool extends Command
         }
 
         $this->io->table(array_keys($inferred_data), [array_values($inferred_data)]);
+    }
+
+    /**
+     * @return string
+     */
+    public static function getExecutionId(): string
+    {
+        return self::$execution_id ?? self::$execution_id = uniqid('', false);
     }
 }

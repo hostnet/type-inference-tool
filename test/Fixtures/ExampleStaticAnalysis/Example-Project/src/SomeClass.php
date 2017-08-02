@@ -3,6 +3,9 @@ declare(strict_types = 1);
 
 namespace ExampleStaticProject;
 
+use ExampleStaticProject\AbstractFoo;
+use ExampleStaticProject\FooInterface;
+
 class SomeClass extends AbstractFoo implements FooInterface
 {
     private $foo;

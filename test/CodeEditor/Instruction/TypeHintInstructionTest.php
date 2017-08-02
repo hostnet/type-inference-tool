@@ -26,6 +26,11 @@ class TypeHintInstructionTest extends TestCase
     private $fs;
 
     /**
+     * @var AnalyzedClass
+     */
+    private $class;
+
+    /**
      * @var string
      */
     private $fixtures_dir;
@@ -33,6 +38,10 @@ class TypeHintInstructionTest extends TestCase
     protected function setUp()
     {
         $this->fixtures_dir = dirname(__DIR__, 2) . '/Fixtures';
+
+        $namespace   = 'ExampleProject\\Component';
+        $class_name  = 'ExampleClass';
+        $this->class = new AnalyzedClass($namespace, $class_name, '', null, [], []);
 
         $this->fs = new Filesystem();
         $this->fs->copy(
@@ -48,16 +57,13 @@ class TypeHintInstructionTest extends TestCase
 
     public function testInstructionShouldAddAReturnTypeToFunctionDeclaration()
     {
-        $namespace  = 'ExampleProject\\Component';
-        $class_name = 'ExampleClass';
-        $class      = new AnalyzedClass($namespace, $class_name, '', null, [], []);
         $arg_number = 0;
         $type_hint  = new ScalarPhpType(ScalarPhpType::TYPE_INT);
 
-        $instruction_single_lined = new TypeHintInstruction($class, 'singleLineFunc', $arg_number, $type_hint);
+        $instruction_single_lined = new TypeHintInstruction($this->class, 'singleLineFunc', $arg_number, $type_hint);
         $instruction_single_lined->apply($this->fixtures_dir . $this->target_project);
 
-        $instruction_multi_lines = new TypeHintInstruction($class, 'multiLineFunc', $arg_number, $type_hint);
+        $instruction_multi_lines = new TypeHintInstruction($this->class, 'multiLineFunc', $arg_number, $type_hint);
         $instruction_multi_lines->apply($this->fixtures_dir . $this->target_project);
 
         self::assertFileEquals(
@@ -66,5 +72,17 @@ class TypeHintInstructionTest extends TestCase
         );
         self::assertSame($arg_number, $instruction_single_lined->getTargetArgNumber());
         self::assertSame($type_hint, $instruction_single_lined->getTargetTypeHint());
+    }
+
+    public function testWhenFunctionNotDefinedInProjectThenDoNotUpdateFile()
+    {
+        $invalid_instruction = new TypeHintInstruction(
+            $this->class,
+            'nonExistentFunction',
+            0,
+            new ScalarPhpType(ScalarPhpType::TYPE_INT)
+        );
+
+        self::assertFalse($invalid_instruction->apply($this->fixtures_dir . $this->project_before));
     }
 }

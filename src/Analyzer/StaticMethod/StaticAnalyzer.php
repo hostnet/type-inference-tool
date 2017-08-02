@@ -7,6 +7,7 @@ namespace Hostnet\Component\TypeInference\Analyzer\StaticMethod;
 
 use Hostnet\Component\TypeInference\Analyzer\Data\AnalyzedFunction;
 use Hostnet\Component\TypeInference\Analyzer\Data\AnalyzedFunctionCollection;
+use Hostnet\Component\TypeInference\Analyzer\DynamicMethod\Tracer\Parser\Mapper\TracerPhpTypeMapper;
 use Hostnet\Component\TypeInference\Analyzer\FunctionAnalyzerInterface;
 use Hostnet\Component\TypeInference\Analyzer\StaticMethod\AstConverter\PhpAstConverter;
 use Hostnet\Component\TypeInference\Analyzer\StaticMethod\NodeVisitor\DocblockNodeVisitor;
@@ -39,11 +40,18 @@ final class StaticAnalyzer implements FunctionAnalyzerInterface
     private $logger;
 
     /**
+     * @var string[]
+     */
+    private $ignored_folders;
+
+    /**
+     * @param string[] $ignored_folders
      * @param LoggerInterface $logger
      */
-    public function __construct(LoggerInterface $logger = null)
+    public function __construct(array $ignored_folders, LoggerInterface $logger = null)
     {
-        $this->logger = $logger ?? new NullLogger();
+        $this->logger          = $logger ?? new NullLogger();
+        $this->ignored_folders = $ignored_folders;
     }
 
     /**
@@ -77,16 +85,19 @@ final class StaticAnalyzer implements FunctionAnalyzerInterface
      * type inference analysis. This means that inferred type hints are also based on
      * docblocks.
      *
-     * @param AnalyzedFunctionCollection $analyzed_function_collection
+     * @param AnalyzedFunctionCollection $functions
      * @param string $target_project
      */
-    private function analyseDocblocks(AnalyzedFunctionCollection $analyzed_function_collection, string $target_project)
+    private function analyseDocblocks(AnalyzedFunctionCollection $functions, string $target_project)
     {
         $this->analyseSourceAsts(
             $target_project,
-            function (array $ast) use ($analyzed_function_collection, $target_project) {
+            function (array $ast, SplFileInfo $file, int $current, int $total) use ($functions, $target_project) {
+                $this->logger->debug(self::TIMER_LOG_NAME . ' - ANALYSING_DOCBLOCKS: ' . $file->getFilename() . ' ('
+                    . $current . '/' . $total . ')');
+
                 $docblock_visitor = new DocblockNodeVisitor(
-                    $analyzed_function_collection,
+                    $functions,
                     $this->retrieveSourceFiles($target_project)
                 );
                 $this->travelTree($ast, $docblock_visitor);
@@ -103,11 +114,28 @@ final class StaticAnalyzer implements FunctionAnalyzerInterface
      */
     private function analyseMethods(AnalyzedFunctionCollection $analyzed_function_collection, string $target_project)
     {
+        $function_index = $this->createFunctionIndex($target_project);
+
         $this->analyseSourceAsts(
             $target_project,
-            function (array $ast, SplFileInfo $file) use ($analyzed_function_collection) {
+            function (
+                array $ast,
+                SplFileInfo $file,
+                int $current,
+                int $total
+            ) use (
+                $analyzed_function_collection,
+                &$function_index
+            ) {
+                $this->logger->debug(self::TIMER_LOG_NAME . ' - ANALYSING_METHODS: ' . $file->getFilename() . ' ('
+                    . $current . '/' . $total . ')');
+
                 $abstract_syntax_tree = $this->travelTree($ast, new NameResolver());
-                $function_visitor     = new FunctionNodeVisitor($analyzed_function_collection, $file->getRealPath());
+                $function_visitor     = new FunctionNodeVisitor(
+                    $analyzed_function_collection,
+                    $file->getRealPath(),
+                    $function_index
+                );
                 $this->travelTree($abstract_syntax_tree, $function_visitor);
             }
         );
@@ -125,9 +153,13 @@ final class StaticAnalyzer implements FunctionAnalyzerInterface
         $project_files = $this->retrieveProjectFiles($target_project);
         $ast_converter = new PhpAstConverter();
 
+        $total_files  = count($project_files);
+        $current_file = 0;
+
         foreach ($project_files as $file) {
+            $current_file++;
             $abstract_syntax_tree = $ast_converter->convert($file->getContents());
-            $execute($abstract_syntax_tree, $file);
+            $execute($abstract_syntax_tree, $file, $current_file, $total_files);
         }
     }
 
@@ -158,7 +190,7 @@ final class StaticAnalyzer implements FunctionAnalyzerInterface
         return (new Finder())
             ->files()
             ->in($target_project)
-            ->exclude('vendor')
+            ->exclude($this->ignored_folders)
             ->name('*.php');
     }
 
@@ -177,5 +209,101 @@ final class StaticAnalyzer implements FunctionAnalyzerInterface
             ->files()
             ->in($target_project)
             ->name('*.php');
+    }
+
+    /**
+     * Traverses all files in the target project and collects all functions per
+     * class. This index is used to retrieve the file location and functions
+     * during node traversal.
+     *
+     * @param string $target_project
+     * @return string[] [fqcn => [file path, [functions]]]
+     */
+    private function createFunctionIndex(string $target_project): array
+    {
+        $function_index = [];
+        $all_files      = $this->retrieveSourceFiles($target_project);
+
+        $this->logger->debug(self::TIMER_LOG_NAME . ': Indexing functions in target project...');
+
+        foreach ($all_files as $file) {
+            $file_contents = $file->getContents();
+
+            preg_match('/namespace\s+([\w_|\\\\]+);/', $file_contents, $namespace);
+            $namespace = $namespace[1] ?? TracerPhpTypeMapper::NAMESPACE_GLOBAL;
+
+            preg_match('/(class|trait|interface)\s+([\w_]+).*\s*\n*{/', $file_contents, $class_name);
+            $class_name = $class_name[2] ?? TracerPhpTypeMapper::NAMESPACE_GLOBAL;
+
+            preg_match_all('/function\s+([\w_]+)\(/', $file_contents, $functions);
+            $functions = $functions[1];
+
+            preg_match_all('/use ([\w\\\\]*);/', $file_contents, $use_stmts_matches);
+            $use_stmts         = [];
+            $use_stmts_matches = array_walk($use_stmts_matches[1], function ($stmt) use (&$use_stmts) {
+                $parts                  = explode('\\', $stmt);
+                $class_name             = $parts[count($parts) - 1];
+                $use_stmts[$class_name] = $stmt;
+            });
+
+            $extends_pattern = sprintf('/class %s extends ([\w\\\\]+)/', preg_quote($class_name, '/'));
+            preg_match($extends_pattern, $file_contents, $extended_class);
+            $extended_class = $extended_class[1] ?? null;
+
+            if ($extended_class !== null) {
+                if (array_key_exists($extended_class, $use_stmts)) {
+                    $extended_class = $use_stmts[$extended_class];
+                } else {
+                    $extended_class = $namespace . '\\' . $extended_class;
+                }
+            }
+
+            $impl_pattern = sprintf('/class %s (extends [\w\\\\]+)?\s*implements\s(([\w\\\\]+(,\s)?)*)/', $class_name);
+            preg_match($impl_pattern, $file_contents, $implements);
+            $implements = array_key_exists(2, $implements) ? explode(', ', $implements[2]) : [];
+            foreach ($implements as $i => $implement) {
+                if (array_key_exists($implement, $use_stmts)) {
+                    $implements[$i] = $use_stmts[$implement];
+                    continue;
+                }
+                $implements[$i] = $namespace . '\\' . $implement;
+            }
+
+            $function_index[$namespace . '\\' . $class_name] = [
+                'path' => $file->getRealPath(),
+                'methods' => $functions,
+                'parents' => array_merge($extended_class !== null ? [$extended_class] : [], $implements)
+            ];
+        }
+
+        return $function_index;
+    }
+
+    /**
+     * Lists all methods of the given class and its parents.
+     *
+     * @param string[] $function_index
+     * @param string $current_fqcn
+     * @param string[] $methods
+     * @return string[]
+     */
+    public static function listAllMethods(array &$function_index, string $current_fqcn, array $methods = []): array
+    {
+        if (!array_key_exists($current_fqcn, $function_index)) {
+            return $methods;
+        }
+
+        foreach ($function_index[$current_fqcn]['methods'] as $current_method) {
+            if (!in_array($current_method, $methods, true)) {
+                $methods[] = $current_method;
+            }
+        }
+
+        $parents = $function_index[$current_fqcn]['parents'];
+        foreach ($parents as $parent) {
+            $methods = self::listAllMethods($function_index, $parent, $methods);
+        }
+
+        return $methods;
     }
 }

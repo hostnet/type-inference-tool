@@ -310,6 +310,75 @@ php
         self::assertEmpty($results[1]->getCollectedArguments());
     }
 
+    public function testWhenDocDefinedObjectButItDoesNotExistThenDoNotRetrieveParentDoc()
+    {
+        $doc_block = "/**\n * @return SomeObject\n */";
+
+        $some_class_parent = new AnalyzedClass('Just\Some\Ns', 'SomeClassParent', null, null, [], ['foobar']);
+        $some_class        = new AnalyzedClass('Just\Some\Ns', 'SomeClass', null, $some_class_parent, [], ['foobar']);
+        $foobar_method     = new AnalyzedFunction($some_class, 'foobar', ScalarPhpType::TYPE_STRING, true, []);
+        $foobar_method->setDocblock(new Docblock($doc_block));
+
+        $this->collection = new AnalyzedFunctionCollection();
+        $this->collection->add($foobar_method);
+
+        $this->node_visitor = new DocblockNodeVisitor(
+            $this->collection,
+            (new Finder())->in(dirname(__DIR__, 3) . '/Fixtures/ExampleStaticAnalysis/Example-Project/')
+        );
+
+        $this->return_node    = new Return_(new String_('Hello'));
+        $this->method_node    = new ClassMethod('foobar', [
+            'params' => [new Param('arg0', new ConstFetch(new Name('true')), 'bool')],
+            'returnType' => 'string',
+            'type' => 1,
+            'stmts' => [$this->return_node],
+            'attributes' => [
+                'comments' => [new Doc('/** This is a doc block. */')]
+            ]
+        ], []);
+        $this->class_node     = new Class_('SomeClass', [
+            'extends' => 'SomeClassParent',
+            'implements' => null,
+            'stmts' => [$this->method_node]
+        ], []);
+        $this->namespace_node = new Namespace_(new Name(['Just', 'Some', 'Ns']), [$this->class_node], []);
+
+        $this->method_node->setDocComment(new Doc($doc_block));
+        $this->abstract_syntax_tree = [$this->namespace_node];
+        $this->traverseTree();
+
+        self::assertSame($doc_block, $this->collection->getAll()[0]->getDocblock()->toString());
+    }
+
+    /**
+     * @param string $docblock
+     * @dataProvider invalidSyntaxDocBlockProvider
+     */
+    public function testWhenDocContainsInvalidReturnSyntaxThenDoNotAnalyse(string $docblock)
+    {
+        $finder = (new Finder())->in(dirname(__DIR__, 3) . '/Fixtures/ExampleStaticAnalysis/Example-Project/');
+
+        $this->collection->getAll()[0]->getClass()->setNamespace('ExampleStaticProject');
+        $this->namespace_node = new Namespace_(new Name(['ExampleStaticProject']), [$this->class_node]);
+
+        $this->method_node->setDocComment(new Doc($docblock));
+        $this->node_visitor = new DocblockNodeVisitor($this->collection, $finder);
+
+        $this->traverseTree();
+        $results = $this->collection->getAll();
+
+        self::assertEmpty($results[0]->getCollectedReturns());
+    }
+
+    public function invalidSyntaxDocBlockProvider(): array
+    {
+        return [
+            ['/** @return - */'],
+            ['/** @param invalid - */']
+        ];
+    }
+
     public function docBlockReturnTypeProvider(): array
     {
         return [

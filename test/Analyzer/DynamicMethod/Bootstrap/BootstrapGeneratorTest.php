@@ -28,6 +28,11 @@ class BootstrapGeneratorTest extends TestCase
      */
     private $output_dir;
 
+    /**
+     * @var string
+     */
+    private $outputted_file;
+
     protected function setUp()
     {
         $this->file_system = new Filesystem();
@@ -38,7 +43,7 @@ class BootstrapGeneratorTest extends TestCase
 
     protected function tearDown()
     {
-        $this->file_system->remove($this->output_dir);
+        $this->file_system->remove($this->outputted_file);
     }
 
     /**
@@ -53,8 +58,8 @@ class BootstrapGeneratorTest extends TestCase
         $bootstrap_generator = new BootstrapGenerator();
         $bootstrap_generator->generateBootstrap($project_dir, $this->output_dir, $output_file);
 
-        $outputted_file = $this->output_dir . $output_file . '.php';
-        self::assertFileExists($outputted_file);
+        $this->outputted_file = $this->output_dir . $output_file . '.php';
+        self::assertFileExists($this->outputted_file);
 
         $expected = sprintf(
             <<<'PHP'
@@ -68,7 +73,7 @@ PHP
             $this->output_dir . BootstrapGenerator::TRACE_FILE_NAME,
             $project_dir
         );
-        self::assertStringEqualsFile($outputted_file, $expected);
+        self::assertStringEqualsFile($this->outputted_file, $expected);
     }
 
     public function projectLocationDataProvider()

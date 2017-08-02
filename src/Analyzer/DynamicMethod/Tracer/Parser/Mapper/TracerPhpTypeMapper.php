@@ -21,10 +21,10 @@ class TracerPhpTypeMapper
     const TYPE_ARRAY        = 'array';
     const FUNCTION_CLOSURE  = '{closure}';
     const REGEX_TO_TYPE_MAP = [
-        '/string(\(\d+\))?|String/' => 'string',
+        '/^string(\(\d+\))?|String/' => 'string',
         '/array(\(\d+\))?/' => 'array',
         '/\{closure\}|class Closure|callable/' => 'callable',
-        '/true|false|bool|boolean/' => 'bool',
+        '/true|false|bool|boolean/i' => 'bool',
         '/long|int|integer/' => 'int',
         '/double|float|number/' => 'float',
     ];
