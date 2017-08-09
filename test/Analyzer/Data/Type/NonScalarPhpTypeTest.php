@@ -21,6 +21,10 @@ class NonScalarPhpTypeTest extends TestCase
         $php_type = new NonScalarPhpType($this->namespace, $this->class_name, '', null, []);
 
         self::assertSame($this->namespace . '\\' . $this->class_name, $php_type->getName());
+        self::assertFalse($php_type->isNullable());
+
+        $php_type->setNullable(true);
+        self::assertTrue($php_type->isNullable());
     }
 
     public function testAnalyzedClassToNonScalarTypeContainSameValues()

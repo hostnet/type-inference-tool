@@ -22,16 +22,23 @@ final class ScalarPhpType implements PhpTypeInterface
     private $type;
 
     /**
+     * @var bool
+     */
+    private $is_nullable = false;
+
+    /**
      * @param string $type
+     * @param bool $is_nullable
      * @throws \InvalidArgumentException
      */
-    public function __construct(string $type)
+    public function __construct(string $type, bool $is_nullable = false)
     {
         if (!in_array($type, self::SCALAR_TYPES, true)) {
             throw new \InvalidArgumentException(sprintf("Given type '%s' is not a PHP-scalar.", $type));
         }
 
-        $this->type = $type;
+        $this->is_nullable = $is_nullable;
+        $this->type        = $type;
     }
 
     /**
@@ -40,5 +47,21 @@ final class ScalarPhpType implements PhpTypeInterface
     public function getName(): string
     {
         return $this->type;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function isNullable(): bool
+    {
+        return $this->is_nullable;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function setNullable(bool $is_nullable)
+    {
+        $this->is_nullable = $is_nullable;
     }
 }

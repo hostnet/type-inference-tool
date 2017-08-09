@@ -180,14 +180,16 @@ php
     /**
      * @dataProvider docBlockReturnTypeProvider
      */
-    public function testDefinedReturnTypeFromDocBlockShouldBeAnalyzed(string $docblock, string $type)
+    public function testDefinedReturnTypeFromDocBlockShouldBeAnalyzed(string $docblock, string $type, bool $is_nullable)
     {
         $this->method_node->setDocComment(new Doc($docblock));
 
         $this->traverseTree();
-        $results = $this->collection->getAll();
+        $results       = $this->collection->getAll();
+        $resulted_type = $results[0]->getCollectedReturns()[0]->getType();
 
-        self::assertContains($type, $results[0]->getCollectedReturns()[0]->getType()->getName());
+        self::assertContains($type, $resulted_type->getName());
+        self::assertEquals($is_nullable, $resulted_type->isNullable());
     }
 
     public function testWhenNotImportedClassIsHintedThenDoNotCallItGlobally()
@@ -382,15 +384,18 @@ php
     public function docBlockReturnTypeProvider(): array
     {
         return [
-            ['/** @return string */', 'string'],
-            ['/** @return float */', 'float'],
-            ['/** @return int */', 'int'],
-            ['/** @return bool */', 'bool'],
-            ['/** @return $this */', 'Just\Some\NamespaceName\SomeClass'],
-            ['/** @return mixed */', UnresolvablePhpType::DOCBLOCK_MULTIPLE],
-            ['/** @return string|float */', UnresolvablePhpType::DOCBLOCK_MULTIPLE],
-            ['/** @return bool[] */', '\array'],
-            ['/** @return callable */', '\callable']
+            ['/** @return string */', 'string', false],
+            ['/** @return float */', 'float', false],
+            ['/** @return int */', 'int', false],
+            ['/** @return bool */', 'bool', false],
+            ['/** @return $this */', 'Just\Some\NamespaceName\SomeClass', false],
+            ['/** @return mixed */', UnresolvablePhpType::DOCBLOCK_MULTIPLE, false],
+            ['/** @return string|float */', UnresolvablePhpType::DOCBLOCK_MULTIPLE, false],
+            ['/** @return bool[] */', '\array', false],
+            ['/** @return callable */', '\callable', false],
+            ['/** @return null|\DateInterval */', '\DateInterval', true],
+            ['/** @return \DateInterval|null */', '\DateInterval', true],
+            ['/** @return \DateInterval|null|string */', UnresolvablePhpType::DOCBLOCK_MULTIPLE, false]
         ];
     }
 

@@ -198,13 +198,16 @@ final class FunctionNodeVisitor extends AbstractAnalyzingNodeVisitor
      * @param ClassMethod $class
      * @return string|null
      */
-    private function getClassMethodReturnType(ClassMethod $class)
+    private function getClassMethodReturnType(ClassMethod $class): ?string
     {
         if ($class->returnType instanceof NullableType) {
-            return $class->returnType->type->toString();
+            $type = $class->returnType->type;
+            return $type instanceof Name ? $type->toString() : $type;
         }
 
-        if ($class->returnType instanceof FullyQualified && $class->returnType !== null) {
+        if (($class->returnType instanceof FullyQualified && $class->returnType !== null)
+            || $class->returnType instanceof Name
+        ) {
             return $class->returnType->toString();
         }
 
@@ -236,6 +239,12 @@ final class FunctionNodeVisitor extends AbstractAnalyzingNodeVisitor
             $analyzed_parameter->setHasTypeHint(true);
             if ($param->type instanceof Name) {
                 $analyzed_parameter->setType($param->type->toString());
+                continue;
+            }
+
+            if ($param->type instanceof NullableType) {
+                $type = $param->type->type;
+                $analyzed_parameter->setType($type instanceof Name ? $type->toString() : $type);
                 continue;
             }
 

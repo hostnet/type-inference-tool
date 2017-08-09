@@ -10,10 +10,8 @@ use Hostnet\Component\TypeInference\Analyzer\DynamicMethod\Tracer\Parser\Mapper\
 use Hostnet\Component\TypeInference\Analyzer\DynamicMethod\Tracer\Parser\Record\AbstractRecord;
 use Hostnet\Component\TypeInference\Analyzer\DynamicMethod\Tracer\Parser\Record\EntryRecord;
 use Hostnet\Component\TypeInference\Analyzer\DynamicMethod\Tracer\Parser\Record\ReturnRecord;
-use Hostnet\Component\TypeInference\Analyzer\DynamicMethod\Tracer\Parser\Storage\DatabaseRecordStorage;
 use Hostnet\Component\TypeInference\Analyzer\DynamicMethod\Tracer\Parser\Storage\RecordStorageInterface;
 use Psr\Log\LoggerInterface;
-use Psr\Log\NullLogger;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Finder\Finder;
 
@@ -319,7 +317,7 @@ class TraceParser
             preg_match('/namespace\s+([\w_|\\\\]+);/', $file_contents, $namespace);
             $namespace = $namespace[1] ?? TracerPhpTypeMapper::NAMESPACE_GLOBAL;
 
-            preg_match('/(class|trait|interface)\s+([\w_]+).*\s*\n*{/', $file_contents, $class_name);
+            preg_match('/(class|trait|interface)\s+([\w_]+).*\s*\n*(.*\n)*{/', $file_contents, $class_name);
             $class_name = $class_name[2] ?? TracerPhpTypeMapper::NAMESPACE_GLOBAL;
 
             preg_match_all('/function\s+([\w_]+)\(/', $file_contents, $functions);

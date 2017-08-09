@@ -86,11 +86,11 @@ final class TypeHintInstruction extends AbstractInstruction
         $type_representation = $type instanceof NonScalarPhpType ? $type->getClassName() : $type->getName();
 
         $pattern      = sprintf(
-            '/function %s\((\n\s*)?((\w+\s)?(\$|&)\w+,(\s|\n)(\s*)?){%s}(?!(\s*)?\\\\?\w+)+/',
+            '/function %s\((\n\s*)?((\w+\s)?(\$|&)\w+,(\s|\n)(\s*)?){%s}(?!(\s*)?\\\\?(\?)?\w+)+/',
             $this->getTargetFunctionName(),
             $this->target_arg_number
         );
-        $replacement  = sprintf('$0%s ', $type_representation);
+        $replacement  = sprintf('$0%s ', ($type->isNullable() ? '?' : '') . $type_representation);
         $updated_file = preg_replace($pattern, $replacement, $file->getContents());
 
         if (strcmp($updated_file, $file->getContents()) === 0) {
@@ -99,7 +99,7 @@ final class TypeHintInstruction extends AbstractInstruction
 
         $file->setContents($updated_file);
         $this->logger->debug('TYPE_HINT: Added {type} to parameter {param_nr} in {fqcn}::{function}', [
-            'type' => $type_representation,
+            'type' => ($type->isNullable() ? '?' : '') . $type_representation,
             'param_nr' => $this->target_arg_number,
             'fqcn' => $this->getTargetClass()->getFqcn(),
             'function' => $this->getTargetFunctionName()

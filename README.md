@@ -106,5 +106,4 @@ characters per line after adding type hints.
 
 ## Improvements
 The type-inference-tool currently has following limitations:
-* The tool does not add nullable type hints
 * The tool does not check for [PHP 7.2 covariance](https://wiki.php.net/rfc/parameter-no-type-variance)

@@ -46,6 +46,7 @@ class FileRecordStorageTest extends TestCase
     {
         self::assertFileNotExists($this->storage->getEntryRecordFileLocation());
         $this->storage->appendEntryRecord($this->entry_record);
+        $this->storage->finishInsertion();
         self::assertFileExists($this->storage->getEntryRecordFileLocation());
 
         $this->storage->loopEntryRecords(function (EntryRecord $record, array $params, $return_type) {

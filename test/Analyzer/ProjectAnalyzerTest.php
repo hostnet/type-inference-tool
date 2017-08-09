@@ -341,6 +341,35 @@ class ProjectAnalyzerTest extends TestCase
         }
     }
 
+    public function testWhenMixedUsageBetweenNullAndSomeTypeThenAddNullableTypes()
+    {
+        $ignored_folders        = [ProjectAnalyzer::VENDOR_FOLDER];
+        $target_project         = dirname(__DIR__) . '/Fixtures/ExampleDynamicAnalysis/Example-Project-2';
+        $this->project_analyzer = new ProjectAnalyzer();
+        $dynamic_analyzer       = new DynamicAnalyzer(new MemoryRecordStorage(), $ignored_folders);
+        $static_analyzer        = new StaticAnalyzer($ignored_folders);
+
+        $this->project_analyzer->addAnalyzer($dynamic_analyzer);
+        $this->project_analyzer->addAnalyzer($static_analyzer);
+        $instructions = $this->project_analyzer->analyse($target_project);
+
+        $class         = new AnalyzedClass(
+            'ExampleProject2',
+            'SomeClass',
+            $target_project . '/src/SomeClass.php',
+            null,
+            [],
+            ['foo']
+        );
+        $instruction_1 = new TypeHintInstruction($class, 'foo', 0, new ScalarPhpType(ScalarPhpType::TYPE_INT, true));
+        $instruction_2 = new TypeHintInstruction($class, 'foo', 1, NonScalarPhpType::fromAnalyzedClass($class, true));
+        $instruction_3 = new ReturnTypeInstruction($class, 'foo', new ScalarPhpType(ScalarPhpType::TYPE_INT, true));
+
+        self::assertContains($instruction_1, $instructions, null, null, false);
+        self::assertContains($instruction_2, $instructions, null, null, false);
+        self::assertContains($instruction_3, $instructions, null, null, false);
+    }
+
     public function analyzedFunctionsReturnTypeDataProvider(): array
     {
         $type_int          = new ScalarPhpType(ScalarPhpType::TYPE_INT);

@@ -80,7 +80,7 @@ abstract class AbstractInstruction
                 preg_quote($this->target_class->getNamespace() ?? '', '/')
             );
             $regex_class_name_pattern = sprintf(
-                '/(interface|class) %s(\s|$)/',
+                '/(interface|class|trait) %s(\s|$)/',
                 preg_quote($this->target_class->getClassName(), '/')
             );
 

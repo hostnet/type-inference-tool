@@ -14,4 +14,14 @@ interface PhpTypeInterface
      * @return string
      */
     public function getName(): string;
+
+    /**
+     * @return bool
+     */
+    public function isNullable(): bool;
+
+    /**
+     * @param bool $is_nullable
+     */
+    public function setNullable(bool $is_nullable);
 }

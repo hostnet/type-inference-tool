@@ -7,9 +7,15 @@ use PHPUnit\Framework\TestCase;
 
 class SomeClassTest extends TestCase
 {
-    public function testSomething()
+    public function testFooWithArguments()
     {
         $test = new SomeClass();
-        self::assertTrue($test->foo(true));
+        self::assertNotNull($test->foo(123, new SomeClass()));
+    }
+
+    public function testFooWithoutArguments()
+    {
+        $test = new SomeClass();
+        self::assertNull($test->foo(null, null));
     }
 }

@@ -19,6 +19,7 @@ class TracerPhpTypeMapper
     const TYPE_UNKNOWN      = 'unknown';
     const CLASS_PREFIX      = 'class';
     const TYPE_ARRAY        = 'array';
+    const TYPE_VARIADIC     = '...';
     const FUNCTION_CLOSURE  = '{closure}';
     const REGEX_TO_TYPE_MAP = [
         '/^string(\(\d+\))?|String/' => 'string',
@@ -50,7 +51,11 @@ class TracerPhpTypeMapper
             return new NonScalarPhpType(self::NAMESPACE_GLOBAL, $php_type, '', null, []);
         }
 
-        list($namespace, $class_name) = self::extractTraceFunctionName($trace_type);
+        if (self::TYPE_VARIADIC === $trace_type) {
+            return new UnresolvablePhpType(UnresolvablePhpType::INCONSISTENT);
+        }
+
+        [$namespace, $class_name] = self::extractTraceFunctionName($trace_type);
 
         if (self::TYPE_UNKNOWN === $class_name || 'null' === $trace_type) {
             return new UnresolvablePhpType(UnresolvablePhpType::NONE);

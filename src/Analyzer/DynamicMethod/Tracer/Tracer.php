@@ -7,7 +7,6 @@ namespace Hostnet\Component\TypeInference\Analyzer\DynamicMethod\Tracer;
 
 use Hostnet\Component\TypeInference\Analyzer\DynamicMethod\Bootstrap\BootstrapGenerator;
 use Psr\Log\LoggerInterface;
-use Psr\Log\NullLogger;
 use Symfony\Component\Filesystem\Exception\IOException;
 
 /**

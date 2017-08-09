@@ -58,4 +58,17 @@ class DynamicAnalyzerTest extends TestCase
 
         self::assertSame(0, $count);
     }
+
+    public function testWhenProvidingExistingTraceThenDoNotGenerateNewOne()
+    {
+        $this->analyzer = new DynamicAnalyzer(
+            new MemoryRecordStorage(),
+            [ProjectAnalyzer::VENDOR_FOLDER],
+            null,
+            dirname(__DIR__, 2) . '/Fixtures/ExampleDynamicAnalysis/Trace/example_trace.xt'
+        );
+
+        $results = $this->analyzer->collectAnalyzedFunctions($this->example_project_dir);
+        self::assertEmpty($results);
+    }
 }

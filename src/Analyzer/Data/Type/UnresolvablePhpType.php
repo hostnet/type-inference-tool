@@ -44,6 +44,11 @@ final class UnresolvablePhpType implements PhpTypeInterface
     private $message;
 
     /**
+     * @var bool
+     */
+    private $is_nullable = false;
+
+    /**
      * @param string $type
      * @param string $message
      * @throws \InvalidArgumentException
@@ -64,5 +69,42 @@ final class UnresolvablePhpType implements PhpTypeInterface
     public function getName(): string
     {
         return $this->type . ($this->message !== null ? ' (' . $this->message . ')' : '');
+    }
+
+    /**
+     * @return string
+     */
+    public function getType(): string
+    {
+        return $this->type;
+    }
+
+    /**
+     * @return bool
+     */
+    public function isNullable(): bool
+    {
+        return $this->is_nullable;
+    }
+
+    /**
+     * @param bool $is_nullable
+     */
+    public function setNullable(bool $is_nullable)
+    {
+        $this->is_nullable = $is_nullable;
+    }
+
+    /**
+     * Returns whether the given PhpType is an unresolvable type with the type
+     * 'none'. Used to determine whether a parameter or return type is
+     * nullable.
+     *
+     * @param PhpTypeInterface $type
+     * @return bool
+     */
+    public static function isPhpTypeNullable(PhpTypeInterface $type): bool
+    {
+        return $type instanceof UnresolvablePhpType && $type->getType() === self::NONE;
     }
 }

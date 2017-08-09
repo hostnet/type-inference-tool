@@ -9,6 +9,7 @@ use Hostnet\Component\TypeInference\Analyzer\Data\AnalyzedClass;
 use Hostnet\Component\TypeInference\Analyzer\Data\AnalyzedFunction;
 use Hostnet\Component\TypeInference\Analyzer\Data\AnalyzedFunctionCollection;
 use Hostnet\Component\TypeInference\Analyzer\Data\AnalyzedParameter;
+use Hostnet\Component\TypeInference\Analyzer\Data\Type\ScalarPhpType;
 use PhpParser\Comment\Doc;
 use PhpParser\Node;
 use PhpParser\Node\Expr\ConstFetch;
@@ -106,6 +107,24 @@ class FunctionNodeVisitorTest extends TestCase
 
         self::assertCount(1, $results);
         self::assertEquals($expected_function, $results[0]);
+    }
+
+    public function testWhenExistingParameterIsNullableUseCorrectType()
+    {
+        $this->method_node = new ClassMethod('foobar', [
+            'params' => [
+                new Param('arg0', null, new NullableType(ScalarPhpType::TYPE_STRING))
+            ],
+            'returnType' => 'string',
+            'type' => 1,
+            'stmts' => [$this->return_node]
+        ], []);
+        $this->traverseTree();
+
+        self::assertSame(
+            ScalarPhpType::TYPE_STRING,
+            $this->collection->getAll()[0]->getDefinedParameters()[0]->getType()
+        );
     }
 
     public function testTraversalAfterNameResolverShouldUseFullyQualifiedClassNames()

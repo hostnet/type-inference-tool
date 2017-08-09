@@ -13,6 +13,33 @@ use Hostnet\Component\TypeInference\Analyzer\Data\AnalyzedClass;
 final class NonScalarPhpType extends AnalyzedClass implements PhpTypeInterface
 {
     /**
+     * @var bool
+     */
+    private $is_nullable = false;
+
+    /**
+     * @param string $namespace
+     * @param string $class_name
+     * @param string $full_path
+     * @param AnalyzedClass $extends
+     * @param array $implements
+     * @param array $methods
+     * @param bool $is_nullable
+     */
+    public function __construct(
+        ?string $namespace = null,
+        ?string $class_name = null,
+        ?string $full_path = null,
+        ?AnalyzedClass $extends = null,
+        array $implements = [],
+        array $methods = [],
+        bool $is_nullable = false
+    ) {
+        parent::__construct($namespace, $class_name, $full_path, $extends, $implements, $methods);
+        $this->is_nullable = $is_nullable;
+    }
+
+    /**
      * {@inheritdoc}
      */
     public function getName(): string
@@ -21,14 +48,31 @@ final class NonScalarPhpType extends AnalyzedClass implements PhpTypeInterface
     }
 
     /**
+     * {@inheritdoc}
+     */
+    public function isNullable(): bool
+    {
+        return $this->is_nullable;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function setNullable(bool $is_nullable)
+    {
+        $this->is_nullable = $is_nullable;
+    }
+
+    /**
      * Takes an array of PhpTypeInterface and determines the common parent
      * between all those PHP-types.
      *
      * @param PhpTypeInterface[] $returns
+     * @param bool $is_nullable
      * @return PhpTypeInterface
      * @throws \InvalidArgumentException
      */
-    public static function getCommonParent(array $returns): PhpTypeInterface
+    public static function getCommonParent(array $returns, bool $is_nullable = false): PhpTypeInterface
     {
         $all_parent_types    = [];
         $contains_scalar     = false;
@@ -59,7 +103,7 @@ final class NonScalarPhpType extends AnalyzedClass implements PhpTypeInterface
         });
 
         if ($common_types !== null && count($common_types) === 1) {
-            return NonScalarPhpType::fromAnalyzedClass($common_types[0]);
+            return NonScalarPhpType::fromAnalyzedClass($common_types[0], $is_nullable);
         }
 
         return new UnresolvablePhpType(UnresolvablePhpType::INCONSISTENT);
@@ -69,9 +113,10 @@ final class NonScalarPhpType extends AnalyzedClass implements PhpTypeInterface
      * Converts a {@link AnalyzedClass} to a {@link NonScalarPhpType}.
      *
      * @param AnalyzedClass $analyzed_class
+     * @param bool $is_nullable
      * @return NonScalarPhpType
      */
-    public static function fromAnalyzedClass(AnalyzedClass $analyzed_class): NonScalarPhpType
+    public static function fromAnalyzedClass(AnalyzedClass $analyzed_class, bool $is_nullable = false): NonScalarPhpType
     {
         return new NonScalarPhpType(
             $analyzed_class->getNamespace(),
@@ -79,7 +124,8 @@ final class NonScalarPhpType extends AnalyzedClass implements PhpTypeInterface
             $analyzed_class->getFullPath(),
             $analyzed_class->getExtends(),
             $analyzed_class->getImplements(),
-            $analyzed_class->getMethods()
+            $analyzed_class->getMethods(),
+            $is_nullable
         );
     }
 }

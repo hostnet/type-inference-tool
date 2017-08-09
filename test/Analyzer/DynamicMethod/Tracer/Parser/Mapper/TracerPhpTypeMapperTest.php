@@ -73,7 +73,8 @@ class TracerPhpTypeMapperTest extends TestCase
                 'ExampleProject\\SomeClass->ExampleProject\\{closure}',
                 new NonScalarPhpType(TracerPhpTypeMapper::NAMESPACE_GLOBAL, 'callable', '', null, [])
             ],
-            ['null', new UnresolvablePhpType(UnresolvablePhpType::NONE)]
+            ['null', new UnresolvablePhpType(UnresolvablePhpType::NONE)],
+            ['...', new UnresolvablePhpType(UnresolvablePhpType::INCONSISTENT)]
         ];
     }
 }

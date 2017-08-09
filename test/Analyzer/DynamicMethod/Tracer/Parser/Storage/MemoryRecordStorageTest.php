@@ -43,6 +43,7 @@ class MemoryRecordStorageTest extends TestCase
     public function testAppendEntryRecordShouldAddAnEntryRecord()
     {
         $this->storage->appendEntryRecord($this->entry_record);
+        $this->storage->finishInsertion();
         $this->storage->loopEntryRecords(function (EntryRecord $record, array $parameters, $return_type) {
             self::assertSame($this->entry_record, $record);
             self::assertSame($this->parameters, $parameters);

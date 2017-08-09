@@ -80,15 +80,15 @@ final class ReturnTypeInstruction extends AbstractInstruction
         $type_representation = $type instanceof NonScalarPhpType ? $type->getClassName() : $type->getName();
         $updated_file        = preg_replace_callback(
             sprintf(
-                '/function %s\([\n\s\w\W]*?\)(?=(:[\\\\\w\s]+)?\s*(?=[{;]))/',
+                '/function %s\([\n\s\w\W]*?\)(?=(:[\\\\\w\?\s]+)?\s*(?=[{;]))/',
                 preg_quote($this->getTargetFunctionName(), '/')
             ),
-            function ($matches) use ($type_representation) {
+            function ($matches) use ($type_representation, $type) {
                 if (count($matches) > 1) {
                     return $matches[0];
                 }
 
-                return $matches[0] . ': ' . $type_representation;
+                return $matches[0] . ': ' . ($type->isNullable() ? '?' : '') . $type_representation;
             },
             $file->getContents()
         );
@@ -99,7 +99,7 @@ final class ReturnTypeInstruction extends AbstractInstruction
 
         $file->setContents($updated_file);
         $this->logger->debug('RETURN_TYPE: Added {type} to {fqcn}::{function}', [
-            'type' => $type_representation,
+            'type' => ($type->isNullable() ? '?' : '') . $type_representation,
             'fqcn' => $this->getTargetClass()->getFqcn(),
             'function' => $this->getTargetFunctionName()
         ]);

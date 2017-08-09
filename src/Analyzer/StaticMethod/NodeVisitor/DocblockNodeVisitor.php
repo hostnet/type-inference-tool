@@ -249,6 +249,25 @@ final class DocblockNodeVisitor extends AbstractAnalyzingNodeVisitor
     }
 
     /**
+     * Takes a list with string representations of types and removes all nulls.
+     *
+     * @param array $types_with_null
+     * @return array
+     */
+    private function filterNullTypes(array $types_with_null): array
+    {
+        $types_without_null = [];
+
+        foreach ($types_with_null as $type) {
+            if ('null' !== $type) {
+                $types_without_null[] = $type;
+            }
+        }
+
+        return $types_without_null;
+    }
+
+    /**
      * Determines the PhpTypeInterface of the given type name.
      *
      * @param string $type_name
@@ -258,27 +277,45 @@ final class DocblockNodeVisitor extends AbstractAnalyzingNodeVisitor
      */
     private function resolvePhpType(string $type_name): PhpTypeInterface
     {
-        if (in_array($type_name, ['mixed', 'unknown', 'unknown_type'], true)) {
-            return new UnresolvablePhpType(UnresolvablePhpType::DOCBLOCK_MULTIPLE, 'defined in docblock as mixed');
-        }
+        $is_nullable = false;
 
         if (strpos($type_name, '|') !== false) {
-            return new UnresolvablePhpType(
-                UnresolvablePhpType::DOCBLOCK_MULTIPLE,
-                sprintf("docblock defined multiple types '%s'", $type_name)
-            );
+            $type_names     = explode('|', $type_name);
+            $filtered_types = $this->filterNullTypes($type_names);
+            $is_nullable    = count($filtered_types) < count($type_names);
+
+            if (count($filtered_types) >= 2) {
+                return new UnresolvablePhpType(
+                    UnresolvablePhpType::DOCBLOCK_MULTIPLE,
+                    sprintf("docblock defined multiple types '%s'", $type_name)
+                );
+            }
+
+            $type_name = $filtered_types[0];
+        }
+
+        if (in_array($type_name, ['mixed', 'unknown', 'unknown_type'], true)) {
+            $type =  new UnresolvablePhpType(UnresolvablePhpType::DOCBLOCK_MULTIPLE, 'defined in docblock as mixed');
+            $type->setNullable($is_nullable);
+            return $type;
         }
 
         if (strpos($type_name, '[]') !== false) {
-            return new NonScalarPhpType(null, 'array');
+            $type =  new NonScalarPhpType(null, 'array');
+            $type->setNullable($is_nullable);
+            return $type;
         }
 
         if ('self' === $type_name || '$this' === $type_name) {
-            return TracerPhpTypeMapper::toPhpType($this->namespace . '\\' . $this->class_name);
+            $type =  TracerPhpTypeMapper::toPhpType($this->namespace . '\\' . $this->class_name);
+            $type->setNullable($is_nullable);
+            return $type;
         }
 
         if (array_key_exists($type_name, $this->use_statements)) {
-            return TracerPhpTypeMapper::toPhpType($this->use_statements[$type_name]);
+            $type = TracerPhpTypeMapper::toPhpType($this->use_statements[$type_name]);
+            $type->setNullable($is_nullable);
+            return $type;
         }
 
         if ($this->source_files !== null) {
@@ -287,12 +324,16 @@ final class DocblockNodeVisitor extends AbstractAnalyzingNodeVisitor
                 if (preg_match($class_regex_pattern, $file->getContents()) === 1
                     && strpos($file->getContents(), sprintf('namespace %s;', $this->namespace)) !== false
                 ) {
-                    return TracerPhpTypeMapper::toPhpType($this->namespace . '\\' . $type_name);
+                    $type = TracerPhpTypeMapper::toPhpType($this->namespace . '\\' . $type_name);
+                    $type->setNullable($is_nullable);
+                    return $type;
                 }
             }
         }
 
-        return TracerPhpTypeMapper::toPhpType($type_name);
+        $type = TracerPhpTypeMapper::toPhpType($type_name);
+        $type->setNullable($is_nullable);
+        return $type;
     }
 
     /***

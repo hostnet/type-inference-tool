@@ -5,8 +5,8 @@ namespace ExampleProject2;
 
 class SomeClass
 {
-    public function foo($bar)
+    public function foo($nullable_scalar, $nullable_non_scalar)
     {
-        return $bar;
+        return $nullable_scalar;
     }
 }

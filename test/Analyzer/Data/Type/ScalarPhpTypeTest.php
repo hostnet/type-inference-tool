@@ -21,6 +21,10 @@ class ScalarPhpTypeTest extends TestCase
     {
         $php_type = new ScalarPhpType($type_name);
         self::assertSame($type_name, $php_type->getName());
+        self::assertFalse($php_type->isNullable());
+
+        $php_type->setNullable(true);
+        self::assertTrue($php_type->isNullable());
     }
 
     public function testScalarPhpTypeThrowsErrorWhenIncorrectType()

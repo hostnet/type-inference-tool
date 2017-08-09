@@ -302,8 +302,6 @@ class ProjectAnalyzer
     }
 
     /**
-     * TODO - Handle nullable parameter types
-     *
      * Takes an array of PhpTypeInterface and determines whether these could be
      * resolved to one type. For example, when multiple objects have the same
      * parent, that parent is the resolved type. Also, mixed usage between float
@@ -315,9 +313,12 @@ class ProjectAnalyzer
      */
     private function resolveMultipleTypes(array $types): PhpTypeInterface
     {
+        $types_without_nulls = $this->removeNullTypes($types);
+        $is_nullable         = count($types_without_nulls) < count($types);
+
         $filtered_types = [];
         $only_scalars   = true;
-        foreach ($types as $type) {
+        foreach ($types_without_nulls as $type) {
             if ($type instanceof UnresolvablePhpType && $type->getName() === UnresolvablePhpType::DOCBLOCK) {
                 continue;
             }
@@ -341,18 +342,35 @@ class ProjectAnalyzer
         }
 
         if (!$only_scalars) {
-            return NonScalarPhpType::getCommonParent($filtered_types);
+            return NonScalarPhpType::getCommonParent($filtered_types, $is_nullable);
         }
 
         $scalar_types = array_map(function (PhpTypeInterface $type) {
             return $type->getName();
         }, $filtered_types);
 
+        if (count($scalar_types) === 1) {
+            return new ScalarPhpType($scalar_types[0], $is_nullable);
+        }
+
         if (count(array_diff($scalar_types, [ScalarPhpType::TYPE_FLOAT, ScalarPhpType::TYPE_INT])) === 0) {
-            return new ScalarPhpType(ScalarPhpType::TYPE_FLOAT);
+            return new ScalarPhpType(ScalarPhpType::TYPE_FLOAT, $is_nullable);
         }
 
         return new UnresolvablePhpType(UnresolvablePhpType::INCONSISTENT);
+    }
+
+    /**
+     * Removes null types from the given array of types.
+     *
+     * @param PhpTypeInterface[] $types_with_nullables
+     * @return PhpTypeInterface[]
+     */
+    private function removeNullTypes(array $types_with_nullables): array
+    {
+        return array_filter($types_with_nullables, function ($type) {
+            return !UnresolvablePhpType::isPhpTypeNullable($type);
+        });
     }
 
     /**
