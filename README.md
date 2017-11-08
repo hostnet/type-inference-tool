@@ -17,7 +17,7 @@ and function types.
 * Target project its Composer dependencies must be installed
 
 ## Installation
-Clone `hostnet\type-inference-tool` and install the dependencies using Composer.
+Clone `hostnet/type-inference-tool` and install the dependencies using Composer.
 
 ## Usage
 The type-inference-tool is used by executing a command. This section explains the available options for this command.
