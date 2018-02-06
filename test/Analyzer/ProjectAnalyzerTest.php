@@ -123,8 +123,8 @@ class ProjectAnalyzerTest extends TestCase
         $expected_class_instruction  = new TypeHintInstruction($analyzed_class, 'foobar', 0, $type_int);
 
         self::assertCount(2, $instructions);
-        self::assertContains($expected_parent_instruction, $instructions, false, false, false);
-        self::assertContains($expected_class_instruction, $instructions, false, false, false);
+        self::assertContains($expected_parent_instruction, $instructions, '', false, false);
+        self::assertContains($expected_class_instruction, $instructions, '', false, false);
     }
 
     public function testDoNotGenerateReturnTypeInstructionsWhenTypeNotSameAsParent()
@@ -192,8 +192,8 @@ class ProjectAnalyzerTest extends TestCase
         $expected_instruction_2 = new ReturnTypeInstruction($child_class2, 'foobar', $type_string);
 
         self::assertCount(2, $instructions);
-        self::assertContains($expected_instruction_1, $instructions, false, false, false);
-        self::assertContains($expected_instruction_2, $instructions, false, false, false);
+        self::assertContains($expected_instruction_1, $instructions, '', false, false);
+        self::assertContains($expected_instruction_2, $instructions, '', false, false);
     }
 
     public function testWhenParentHasNoReturnTypeOnlyChildrenWithResolvableReturnTypeShouldHaveDeclaration()
@@ -236,8 +236,8 @@ class ProjectAnalyzerTest extends TestCase
         $expected_child_class_instruction = new ReturnTypeInstruction($child_class, 'foobar', $type_string);
 
         self::assertCount(2, $instructions);
-        self::assertContains($expected_interface_instruction, $instructions, false, false, false);
-        self::assertContains($expected_child_class_instruction, $instructions, false, false, false);
+        self::assertContains($expected_interface_instruction, $instructions, '', false, false);
+        self::assertContains($expected_child_class_instruction, $instructions, '', false, false);
     }
 
     public function testDoNotGenerateParentAndChildrenTypeHintsWhenTheyAreDifferent()
@@ -273,9 +273,9 @@ class ProjectAnalyzerTest extends TestCase
         $invalid_instruction_2 = new TypeHintInstruction($child1_class, 'foobar', 1, $type_int, new NullLogger());
         $invalid_instruction_3 = new TypeHintInstruction($child2_class, 'foobar', 1, $type_string, new NullLogger());
 
-        self::assertNotContains($invalid_instruction_1, $instructions, false, false, false);
-        self::assertNotContains($invalid_instruction_2, $instructions, false, false, false);
-        self::assertNotContains($invalid_instruction_3, $instructions, false, false, false);
+        self::assertNotContains($invalid_instruction_1, $instructions, '', false, false);
+        self::assertNotContains($invalid_instruction_2, $instructions, '', false, false);
+        self::assertNotContains($invalid_instruction_3, $instructions, '', false, false);
     }
 
     public function testAnalyseFunctionWithLoggingEnabledShouldSaveLogs()
@@ -365,9 +365,9 @@ class ProjectAnalyzerTest extends TestCase
         $instruction_2 = new TypeHintInstruction($class, 'foo', 1, NonScalarPhpType::fromAnalyzedClass($class, true));
         $instruction_3 = new ReturnTypeInstruction($class, 'foo', new ScalarPhpType(ScalarPhpType::TYPE_INT, true));
 
-        self::assertContains($instruction_1, $instructions, null, null, false);
-        self::assertContains($instruction_2, $instructions, null, null, false);
-        self::assertContains($instruction_3, $instructions, null, null, false);
+        self::assertContains($instruction_1, $instructions, '', false, false);
+        self::assertContains($instruction_2, $instructions, '', false, false);
+        self::assertContains($instruction_3, $instructions, '', false, false);
     }
 
     public function analyzedFunctionsReturnTypeDataProvider(): array

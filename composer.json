@@ -9,7 +9,7 @@
         "gossi/docblock":                        "^1.5",
         "monolog/monolog":                       "^1.22",
         "nikic/php-parser":                      "^3.0",
-        "sebastian/diff":                        "^1.4",
+        "sebastian/diff":                        "^3.0",
         "symfony/console":                       "^3.2",
         "symfony/filesystem":                    "^3.2",
         "symfony/finder":                        "^3.2",

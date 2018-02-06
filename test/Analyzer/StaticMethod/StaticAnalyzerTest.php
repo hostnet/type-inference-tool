@@ -70,12 +70,12 @@ class StaticAnalyzerTest extends TestCase
         $abstract_foo_foobar       = new AnalyzedFunction($abstract_foo, 'foobar');
 
         self::assertCount(7, $results);
-        self::assertContains($some_class_construct, $results, false, false, false);
-        self::assertContains($some_class_get_foo, $results, false, false, false);
-        self::assertContains($some_class_do_something, $results, false, false, false);
-        self::assertContains($foo_interface_get_foo, $results, false, false, false);
-        self::assertContains($abstract_foo_do_something, $results, false, false, false);
-        self::assertContains($abstract_foo_foobar, $results, false, false, false);
+        self::assertContains($some_class_construct, $results, '', false, false);
+        self::assertContains($some_class_get_foo, $results, '', false, false);
+        self::assertContains($some_class_do_something, $results, '', false, false);
+        self::assertContains($foo_interface_get_foo, $results, '', false, false);
+        self::assertContains($abstract_foo_do_something, $results, '', false, false);
+        self::assertContains($abstract_foo_foobar, $results, '', false, false);
     }
 
     public function testListAllMethodsShouldRetrieveAllMethodNamesOfTheGivenClassAndItsParents()
