@@ -33,7 +33,7 @@ __Options:__
 
 Certain options can be set alongside the base command. These are the following:
 
-* `--log-dir=<path>`: Specify a file to write logs to. The progress during execution can be followed by tailing the
+* `--log-file=<path>`: Specify a file to write logs to. The progress during execution can be followed by tailing the
 log file. Cases in which type hints cannot be added to parameters or functions will also be logged. 
 * `--storage-type=<mem|file|db>`: The dynamic analyzer uses
 [XDebug trace files](https://xdebug.org/docs/execution_trace) during analysis. Parsing these traces can take up a lot
@@ -58,7 +58,7 @@ the console.
 useful in combination with the `--show-diff` option for small projects to check what type hints would be added.
 * `--help`: Shows help. Lists all available options with short descriptions.
 
-##Examples
+## Examples
 This section provides some execution command examples. These examples are classified in three types of target
 projects: small, bigger and huge. Since these terms are quite subjective it is up to you to determine whether your
 target projects would be small, big or huge.
@@ -68,7 +68,7 @@ __Small projects__
 When executing the tool on 'smaller' projects, the command below would be recommended. Using this command the in-memory
 data storage would be used.
 ```
-./application.php execute /home/user/projects/my-project --log-dir=/home/user/projects/logs/mylogs.log --ignore-folders=Generated,cache,test
+./application.php execute /home/user/projects/my-project --log-file=/home/user/projects/logs/mylogs.log --ignore-folders=Generated,cache,test
 ```
 __Bigger projects__
 
@@ -76,7 +76,7 @@ When executing the project on a 'bigger' project, the file storage type would be
 on 'bigger' or 'huge' projects it would be profitable to carefully set your `--ignore-folders` as this would decrease
 the execution time of the tool.
 ```
-./application.php execute /home/user/projects/my-project --log-dir=/home/user/projects/logs/mylogs.log --storage-type=file --ignore-folders=Generated,cache,test
+./application.php execute /home/user/projects/my-project --log-file=/home/user/projects/logs/mylogs.log --storage-type=file --ignore-folders=Generated,cache,test
 ```
 
 __Huge projects__
@@ -89,7 +89,7 @@ decrease the execution time. If no trace is provided, the type-inference-tool ge
 trace file will be deleted afterwards.
 
 ```
-./application.php execute /home/user/projects/my-project --log-dir=/home/user/projects/logs/mylogs.log --storage-type=db --db-config=/home/user/database-config.json --ignore-folders=Generated,cache,test
+./application.php execute /home/user/projects/my-project --log-file=/home/user/projects/logs/mylogs.log --storage-type=db --db-config=/home/user/database-config.json --ignore-folders=Generated,cache,test
 ```
 
 ## After execution
