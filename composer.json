@@ -39,12 +39,6 @@
             ]
         }
     },
-    "repositories": [
-        {
-            "url":  "https://packagist.hostnetbv.nl",
-            "type": "composer"
-        }
-    ],
     "archive": {
         "exclude": [
             "/test"
