@@ -42,7 +42,7 @@ class Tool extends Command
     const NAME                   = 'Type-Inference-Tool';
     const EXECUTE_COMMAND        = 'execute';
     const ARG_TARGET             = 'target';
-    const OPTION_LOG_DIR         = ['log-dir', 'l'];
+    const OPTION_LOG_FILE        = ['log-file', 'l'];
     const OPTION_ANALYSE_ONLY    = ['analyse-only', 'a'];
     const OPTION_SHOW_DIFF       = ['show-diff', 'd'];
     const OPTION_STORAGE_TYPE    = ['storage-type', 's'];
@@ -114,8 +114,8 @@ class Tool extends Command
                 . ' infer return- and parameter types.')
             ->addArgument(self::ARG_TARGET, InputArgument::OPTIONAL, 'Target project directory', getcwd())
             ->addOption(
-                self::OPTION_LOG_DIR[0],
-                self::OPTION_LOG_DIR[1],
+                self::OPTION_LOG_FILE[0],
+                self::OPTION_LOG_FILE[1],
                 InputOption::VALUE_REQUIRED,
                 'Enable and save logs to the given directory'
             )
@@ -177,7 +177,7 @@ class Tool extends Command
         $this->io->title(self::NAME);
 
         $target_project = $input->getArgument(self::ARG_TARGET);
-        $logger         = $this->getLogger($input->getOption(self::OPTION_LOG_DIR[0]));
+        $logger         = $this->getLogger($input->getOption(self::OPTION_LOG_FILE[0]));
         $logger->info(
             "Type-Inference-Tool started for {project} (execution_id: '{id}')",
             [

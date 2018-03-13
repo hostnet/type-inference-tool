@@ -151,8 +151,8 @@ class ToolTest extends TestCase
     {
         $this->project_analyzer->expects(self::exactly(1))->method('setLogger');
         $this->command_tester->execute([
-            Tool::ARG_TARGET => 'Some/Project/Directory',
-            '--' . Tool::OPTION_LOG_DIR[0] =>  $this->log_dir
+            Tool::ARG_TARGET                => 'Some/Project/Directory',
+            '--' . Tool::OPTION_LOG_FILE[0] =>  $this->log_dir
         ]);
 
         self::assertFileExists($this->log_dir);
