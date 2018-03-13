@@ -1,7 +1,7 @@
 <?php
 declare(strict_types = 1);
 /**
- * @copyright 2017 Hostnet B.V.
+ * @copyright 2017-2018 Hostnet B.V.
  */
 namespace Hostnet\Component\TypeInference\Analyzer\DynamicMethod\Tracer;
 
