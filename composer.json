@@ -16,7 +16,7 @@
         "symfony/stopwatch":                     "^3.2"
     },
     "require-dev": {
-        "hostnet/database-test-lib": "^1.0.0",
+        "hostnet/database-test-lib": "^1.0.5",
         "hostnet/phpcs-tool":        "^5.0.0",
         "phpunit/phpunit":           "^7.0.0"
     },

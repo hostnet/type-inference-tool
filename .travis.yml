@@ -1,13 +1,16 @@
 language: php
 
+services:
+        - mysql
+
 matrix:
     include:
         - php: 7.1
         - php: 7.2
-        - php: nightly
-    allow_failures:
-        - php: nightly
 
 install:
-    - if [ -z "$deps" ]; then composer install; fi;
-    - if [ "$deps" = "lowest" ]; then composer update --prefer-lowest -n; fi;
+    - composer install
+
+script:
+    - vendor/bin/phpunit
+    - cat $HOME/database_test.log
