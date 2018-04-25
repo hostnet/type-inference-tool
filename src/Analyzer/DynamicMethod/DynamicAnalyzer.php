@@ -1,8 +1,9 @@
 <?php
-declare(strict_types = 1);
 /**
  * @copyright 2017-2018 Hostnet B.V.
  */
+declare(strict_types=1);
+
 namespace Hostnet\Component\TypeInference\Analyzer\DynamicMethod;
 
 use Hostnet\Component\TypeInference\Analyzer\Data\AnalyzedCall;
@@ -124,7 +125,7 @@ final class DynamicAnalyzer implements FunctionAnalyzerInterface
         $analyzed_functions = $this->mapRecordsToAnalysedFunctions();
 
         $this->logger->info(self::TIMER_LOG_NAME . ': Finished dynamic analysis ({time}s)', [
-            'time' => round($stopwatch->stop(self::TIMER_LOG_NAME)->getDuration() / 1000, 2)
+            'time' => round($stopwatch->stop(self::TIMER_LOG_NAME)->getDuration() / 1000, 2),
         ]);
         return $analyzed_functions;
     }
@@ -183,7 +184,6 @@ final class DynamicAnalyzer implements FunctionAnalyzerInterface
         $collection = new AnalyzedFunctionCollection();
 
         $this->storage->loopEntryRecords(function (EntryRecord $entry, array $params, $return) use ($collection) {
-
             [$namespace,
                 $class_name,
                 $function_name] = TracerPhpTypeMapper::extractTraceFunctionName($entry->getFunctionName());

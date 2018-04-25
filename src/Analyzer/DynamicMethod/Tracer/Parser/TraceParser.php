@@ -1,8 +1,9 @@
 <?php
-declare(strict_types = 1);
 /**
  * @copyright 2017-2018 Hostnet B.V.
  */
+declare(strict_types=1);
+
 namespace Hostnet\Component\TypeInference\Analyzer\DynamicMethod\Tracer\Parser;
 
 use Hostnet\Component\TypeInference\Analyzer\DynamicMethod\Tracer\Parser\Exception\TraceNotFoundException;
@@ -142,9 +143,11 @@ class TraceParser
                 $this->storage->appendEntryRecord($record);
                 continue;
             }
-            if ($record instanceof ReturnRecord) {
-                $this->storage->appendReturnRecord($record);
+            if (!($record instanceof ReturnRecord)) {
+                continue;
             }
+
+            $this->storage->appendReturnRecord($record);
         }
         fclose($handle);
         $this->storage->finishInsertion();
@@ -195,7 +198,7 @@ class TraceParser
                 return null;
             }
 
-            $index_key = $namespace . '\\'. $class_name . '::'. $function_name;
+            $index_key = $namespace . '\\' . $class_name . '::' . $function_name;
 
             if (!array_key_exists($index_key, $this->function_location_cache)) {
                 return null;
@@ -324,7 +327,7 @@ class TraceParser
             $functions = $functions[1];
 
             foreach ($functions as $function) {
-                $key                                 = $namespace . '\\'. $class_name . '::'. $function;
+                $key                                 = $namespace . '\\' . $class_name . '::' . $function;
                 $this->function_location_cache[$key] = $file->getRealPath();
             }
         }

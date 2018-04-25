@@ -1,8 +1,9 @@
 <?php
-declare(strict_types = 1);
 /**
  * @copyright 2017-2018 Hostnet B.V.
  */
+declare(strict_types=1);
+
 namespace Hostnet\Component\TypeInference\Analyzer\Data;
 
 use Hostnet\Component\TypeInference\Analyzer\Data\Exception\EntryNotFoundException;
@@ -185,9 +186,11 @@ class AnalyzedFunctionCollection implements \Iterator
 
             $parents = $this->getFunctionParents($analyzed_function);
             foreach ($parents as $analyzed_function_parent) {
-                if ($analyzed_function_parent->getFqcn() === $parent->getFqcn()) {
-                    $children[] = $analyzed_function->getClass();
+                if ($analyzed_function_parent->getFqcn() !== $parent->getFqcn()) {
+                    continue;
                 }
+
+                $children[] = $analyzed_function->getClass();
             }
         }
 
@@ -206,11 +209,13 @@ class AnalyzedFunctionCollection implements \Iterator
         $function_parents  = [];
         $all_class_parents = $analyzed_function->getClass()->getParents();
         foreach ($all_class_parents as $parent) {
-            if ($parent->getFqcn() !== $analyzed_function->getClass()->getFqcn()
-                && in_array($analyzed_function->getFunctionName(), $parent->getMethods(), true)
+            if ($parent->getFqcn() === $analyzed_function->getClass()->getFqcn()
+                || !in_array($analyzed_function->getFunctionName(), $parent->getMethods(), true)
             ) {
-                $function_parents[] = $parent;
+                continue;
             }
+
+            $function_parents[] = $parent;
         }
 
         return $function_parents;
@@ -250,9 +255,11 @@ class AnalyzedFunctionCollection implements \Iterator
                 continue;
             }
 
-            if ($instruction instanceof TypeHintInstruction) {
-                $this->applyTypeHintInstruction($instruction);
+            if (!($instruction instanceof TypeHintInstruction)) {
+                continue;
             }
+
+            $this->applyTypeHintInstruction($instruction);
         }
     }
 
@@ -268,16 +275,18 @@ class AnalyzedFunctionCollection implements \Iterator
         foreach ($this->analyzed_functions as $function) {
             $param_number = $instruction->getTargetArgNumber();
 
-            if ($instruction->getTargetFunctionName() === $function->getFunctionName()
-                && count($function->getDefinedParameters()) >= $instruction->getTargetArgNumber() + 1
-                && !$function->getDefinedParameters()[$param_number]->hasTypeHint()
-                && $function->getDefinedParameters()[$param_number]->getType() === TracerPhpTypeMapper::TYPE_UNKNOWN
-                && $instruction->getTargetClass()->getFqcn() === $function->getClass()->getFqcn()
+            if ($instruction->getTargetFunctionName() !== $function->getFunctionName()
+                || count($function->getDefinedParameters()) < $instruction->getTargetArgNumber() + 1
+                || $function->getDefinedParameters()[$param_number]->hasTypeHint()
+                || $function->getDefinedParameters()[$param_number]->getType() !== TracerPhpTypeMapper::TYPE_UNKNOWN
+                || $instruction->getTargetClass()->getFqcn() !== $function->getClass()->getFqcn()
             ) {
-                $updated_parameters = $function->getDefinedParameters();
-                $updated_parameters[$param_number]->setType($instruction->getTargetTypeHint()->getName());
-                $function->setDefinedParameters($updated_parameters);
+                continue;
             }
+
+            $updated_parameters = $function->getDefinedParameters();
+            $updated_parameters[$param_number]->setType($instruction->getTargetTypeHint()->getName());
+            $function->setDefinedParameters($updated_parameters);
         }
     }
 
@@ -290,12 +299,14 @@ class AnalyzedFunctionCollection implements \Iterator
     private function applyReturnTypeInstruction(ReturnTypeInstruction $instruction)
     {
         foreach ($this->analyzed_functions as $function) {
-            if (!$function->hasReturnDeclaration()
-                && $function->getFunctionName() === $instruction->getTargetFunctionName()
-                && $function->getClass()->getFqcn() === $instruction->getTargetClass()->getFqcn()
+            if ($function->hasReturnDeclaration()
+                || $function->getFunctionName() !== $instruction->getTargetFunctionName()
+                || $function->getClass()->getFqcn() !== $instruction->getTargetClass()->getFqcn()
             ) {
-                $function->setDefinedReturnType($instruction->getTargetReturnType()->getName());
+                continue;
             }
+
+            $function->setDefinedReturnType($instruction->getTargetReturnType()->getName());
         }
     }
 
@@ -320,10 +331,12 @@ class AnalyzedFunctionCollection implements \Iterator
             $shared_class->setExtends($analyzed_function->getClass()->getExtends());
         }
 
-        if (count($class->getImplements()) > 0) {
-            foreach ($class->getImplements() as $implement) {
-                $shared_class->addImplementedClass($implement);
-            }
+        if (count($class->getImplements()) <= 0) {
+            return;
+        }
+
+        foreach ($class->getImplements() as $implement) {
+            $shared_class->addImplementedClass($implement);
         }
     }
 

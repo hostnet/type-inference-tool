@@ -1,8 +1,9 @@
 <?php
-declare(strict_types = 1);
 /**
  * @copyright 2017-2018 Hostnet B.V.
  */
+declare(strict_types=1);
+
 namespace Hostnet\Component\TypeInference\Analyzer\DynamicMethod\Tracer\Parser\Mapper;
 
 use Hostnet\Component\TypeInference\Analyzer\Data\Type\NonScalarPhpType;
@@ -88,7 +89,7 @@ class TracerPhpTypeMapper
         return [
             $namespace !== false ? $namespace : '',
             $class_name,
-            $function_name !== '' ? $function_name : null
+            $function_name !== '' ? $function_name : null,
         ];
     }
 }

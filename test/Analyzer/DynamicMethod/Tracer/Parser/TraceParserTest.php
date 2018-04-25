@@ -1,8 +1,9 @@
 <?php
-declare(strict_types = 1);
 /**
  * @copyright 2017-2018 Hostnet B.V.
  */
+declare(strict_types=1);
+
 namespace Hostnet\Component\TypeInference\Analyzer\DynamicMethod\Tracer\Parser;
 
 use Hostnet\Component\TypeInference\Analyzer\DynamicMethod\Tracer\Parser\Exception\TraceNotFoundException;
@@ -68,9 +69,11 @@ class TraceParserTest extends TestCase
             unlink($this->tracer->getFullOutputTracePath());
         }
 
-        if (file_exists($this->tracer->getFullOutputBootstrapPath())) {
-            unlink($this->tracer->getFullOutputBootstrapPath());
+        if (!file_exists($this->tracer->getFullOutputBootstrapPath())) {
+            return;
         }
+
+        unlink($this->tracer->getFullOutputBootstrapPath());
     }
 
     public function testParseValidTraceShouldGenerateAbstractRecords()
@@ -86,9 +89,11 @@ class TraceParserTest extends TestCase
 
         $mocked_entry = null;
         foreach ($entries as $entry) {
-            if ($entry->getFunctionName() === 'ExampleProject\SomeClassTest->testSomethingWithMocks') {
-                $mocked_entry = $entry;
+            if ($entry->getFunctionName() !== 'ExampleProject\SomeClassTest->testSomethingWithMocks') {
+                continue;
             }
+
+            $mocked_entry = $entry;
         }
 
         self::assertNotNull($mocked_entry);
@@ -99,7 +104,7 @@ class TraceParserTest extends TestCase
     {
         $this->expectException(TraceNotFoundException::class);
         $this->trace_parser = new TraceParser($this->target_project, 'Some/invalid/path', $this->storage, [
-            ProjectAnalyzer::VENDOR_FOLDER
+            ProjectAnalyzer::VENDOR_FOLDER,
         ], new NullLogger());
         $this->trace_parser->parse();
     }

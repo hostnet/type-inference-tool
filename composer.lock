@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#composer-lock-the-lock-file",
         "This file is @generated automatically"
     ],
-    "content-hash": "189af82606ba4b499b1c7b6b81816d87",
+    "content-hash": "b5c5cf290db0d9dea0b03e6be4453872",
     "packages": [
         {
             "name": "bramus/ansi-php",
@@ -1481,23 +1481,25 @@
         },
         {
             "name": "hostnet/phpcs-tool",
-            "version": "5.3.0",
+            "version": "6.0.2",
             "source": {
                 "type": "git",
                 "url": "https://github.com/hostnet/phpcs-tool.git",
-                "reference": "35254f8a83ed84125c5011c5eef51194c8f62762"
+                "reference": "80637cdab6d38b0c2c0fb208889ddc05bea4971b"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/hostnet/phpcs-tool/zipball/35254f8a83ed84125c5011c5eef51194c8f62762",
-                "reference": "35254f8a83ed84125c5011c5eef51194c8f62762",
+                "url": "https://api.github.com/repos/hostnet/phpcs-tool/zipball/80637cdab6d38b0c2c0fb208889ddc05bea4971b",
+                "reference": "80637cdab6d38b0c2c0fb208889ddc05bea4971b",
                 "shasum": ""
             },
             "require": {
                 "composer-plugin-api": "^1.0.0",
                 "hostnet/path-composer-plugin-lib": "^1.0.2",
-                "php": ">=7.0",
-                "squizlabs/php_codesniffer": "^3.2.0"
+                "php": ">=7.1",
+                "slevomat/coding-standard": "^4.5",
+                "squizlabs/php_codesniffer": "^3.2.0",
+                "symfony/filesystem": "^3.0.2|^4.0"
             },
             "require-dev": {
                 "composer/composer": "^1.5.5",
@@ -1517,7 +1519,7 @@
                 "MIT"
             ],
             "description": "PHP_CodeSniffer tokenises PHP, JavaScript and CSS files and detects violations of a defined set of coding standards. Hostnet version",
-            "time": "2017-12-22T10:28:32+00:00"
+            "time": "2018-04-24T11:15:18+00:00"
         },
         {
             "name": "myclabs/deep-copy",
@@ -2772,6 +2774,46 @@
             "description": "Library that helps with managing the version number of Git-hosted PHP projects",
             "homepage": "https://github.com/sebastianbergmann/version",
             "time": "2016-10-03T07:35:21+00:00"
+        },
+        {
+            "name": "slevomat/coding-standard",
+            "version": "4.5.2",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/slevomat/coding-standard.git",
+                "reference": "1e609159241fa90d5a429f185b2ea9b881340a7c"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/slevomat/coding-standard/zipball/1e609159241fa90d5a429f185b2ea9b881340a7c",
+                "reference": "1e609159241fa90d5a429f185b2ea9b881340a7c",
+                "shasum": ""
+            },
+            "require": {
+                "php": "^7.1",
+                "squizlabs/php_codesniffer": "^3.2.3"
+            },
+            "require-dev": {
+                "jakub-onderka/php-parallel-lint": "1.0.0",
+                "phing/phing": "2.16",
+                "phpstan/phpstan": "0.9.2",
+                "phpstan/phpstan-phpunit": "0.9.4",
+                "phpstan/phpstan-strict-rules": "0.9",
+                "phpunit/php-code-coverage": "6.0.1",
+                "phpunit/phpunit": "7.0.2"
+            },
+            "type": "phpcodesniffer-standard",
+            "autoload": {
+                "psr-4": {
+                    "SlevomatCodingStandard\\": "SlevomatCodingStandard"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "description": "Slevomat Coding Standard for PHP_CodeSniffer complements Consistence Coding Standard by providing sniffs with additional checks.",
+            "time": "2018-03-08T08:14:33+00:00"
         },
         {
             "name": "squizlabs/php_codesniffer",

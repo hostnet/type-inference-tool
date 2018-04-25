@@ -1,8 +1,9 @@
 <?php
-declare(strict_types = 1);
 /**
  * @copyright 2017-2018 Hostnet B.V.
  */
+declare(strict_types=1);
+
 namespace Hostnet\Component\TypeInference\Analyzer\Data;
 
 use gossi\docblock\Docblock;
@@ -67,7 +68,7 @@ class AnalyzedFunctionTest extends TestCase
     {
         $analyzed_calls = [
             [new ScalarPhpType(ScalarPhpType::TYPE_STRING), new ScalarPhpType(ScalarPhpType::TYPE_INT)],
-            [new NonScalarPhpType('', 'SomeClass', '', null, []), new ScalarPhpType(ScalarPhpType::TYPE_FLOAT)]
+            [new NonScalarPhpType('', 'SomeClass', '', null, []), new ScalarPhpType(ScalarPhpType::TYPE_FLOAT)],
         ];
 
         $this->analyzed_function->addAllCollectedArguments($analyzed_calls);
@@ -80,7 +81,7 @@ class AnalyzedFunctionTest extends TestCase
         $analyzed_returns = [
             new AnalyzedReturn(new NonScalarPhpType('ns', 'SomeObject', '', null, [])),
             new AnalyzedReturn(new ScalarPhpType(ScalarPhpType::TYPE_STRING)),
-            new AnalyzedReturn(new ScalarPhpType(ScalarPhpType::TYPE_FLOAT))
+            new AnalyzedReturn(new ScalarPhpType(ScalarPhpType::TYPE_FLOAT)),
         ];
 
         $this->analyzed_function->addAllCollectedReturns($analyzed_returns);
@@ -110,7 +111,7 @@ class AnalyzedFunctionTest extends TestCase
 
         $analyzed_parameters = [
             new AnalyzedParameter('$arg0', ScalarPhpType::TYPE_INT, true, true),
-            new AnalyzedParameter()
+            new AnalyzedParameter(),
         ];
         $this->analyzed_function->setDefinedParameters($analyzed_parameters);
 

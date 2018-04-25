@@ -1,8 +1,9 @@
 <?php
-declare(strict_types=1);
 /**
  * @copyright 2017-2018 Hostnet B.V.
  */
+declare(strict_types=1);
+
 namespace Hostnet\Component\TypeInference\Analyzer\DynamicMethod\Tracer\Parser\Storage;
 
 use Doctrine\DBAL\Connection;
@@ -78,10 +79,12 @@ class DatabaseRecordStorage implements RecordStorageInterface
         $this->startInserting();
         $this->addToEntryRecordInsertBatch($entry_record);
 
-        if (count($this->entry_record_batch) >= self::RECORDS_PER_BATCH) {
-            $this->insertEntryRecordBatch();
-            $this->insertReturnRecordBatch();
+        if (count($this->entry_record_batch) < self::RECORDS_PER_BATCH) {
+            return;
         }
+
+        $this->insertEntryRecordBatch();
+        $this->insertReturnRecordBatch();
     }
 
     /**
@@ -116,10 +119,12 @@ class DatabaseRecordStorage implements RecordStorageInterface
      */
     private function startInserting()
     {
-        if (!$this->is_inserting) {
-            $this->is_inserting = true;
-            $this->connection->beginTransaction();
+        if ($this->is_inserting) {
+            return;
         }
+
+        $this->is_inserting = true;
+        $this->connection->beginTransaction();
     }
 
     /**
@@ -226,7 +231,7 @@ sql
             $record->getFunctionName(),
             $record->isUserDefined() ? '1' : '0',
             $record->getFileName(),
-            $declaration_file !== null ? $declaration_file : 'null'
+            $declaration_file !== null ? $declaration_file : 'null',
         ];
 
         $this->addToEntryRecordParameterInsertBatch($record);
@@ -287,7 +292,7 @@ sql
                 Tool::getExecutionId(),
                 $record->getNumber(),
                 $arg_nr,
-                $parameter
+                $parameter,
             ];
         }
     }

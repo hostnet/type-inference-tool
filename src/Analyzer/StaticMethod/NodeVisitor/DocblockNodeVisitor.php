@@ -1,8 +1,8 @@
 <?php
-declare(strict_types=1);
 /**
  * @copyright 2017-2018 Hostnet B.V.
  */
+declare(strict_types=1);
 
 namespace Hostnet\Component\TypeInference\Analyzer\StaticMethod\NodeVisitor;
 
@@ -88,10 +88,12 @@ final class DocblockNodeVisitor extends AbstractAnalyzingNodeVisitor
             return;
         }
 
-        if ($node instanceof ClassMethod) {
-            $this->function_name = $node->name;
-            $this->analyseDocBlock($node);
+        if (!($node instanceof ClassMethod)) {
+            return;
         }
+
+        $this->function_name = $node->name;
+        $this->analyseDocBlock($node);
     }
 
     /**
@@ -191,12 +193,14 @@ final class DocblockNodeVisitor extends AbstractAnalyzingNodeVisitor
                     continue;
                 }
 
-                if (preg_match(sprintf('/&?\$%s/', $defined_param->getName()), $docblock_param->getVariable())) {
-                    try {
-                        $docblock_types[$i] = $this->resolvePhpType($docblock_param->getType());
-                    } catch (\Throwable $e) {
-                        continue;
-                    }
+                if (!preg_match(sprintf('/&?\$%s/', $defined_param->getName()), $docblock_param->getVariable())) {
+                    continue;
+                }
+
+                try {
+                    $docblock_types[$i] = $this->resolvePhpType($docblock_param->getType());
+                } catch (\Throwable $e) {
+                    continue;
                 }
             }
         }
@@ -240,9 +244,11 @@ final class DocblockNodeVisitor extends AbstractAnalyzingNodeVisitor
                 $child_docblock->appendTag($param);
             }
 
-            if ($parent_doc->hasTag('return')) {
-                $child_docblock->appendTag($parent_doc->getTags('return')->get(0));
+            if (!$parent_doc->hasTag('return')) {
+                continue;
             }
+
+            $child_docblock->appendTag($parent_doc->getTags('return')->get(0));
         }
 
         return $child_docblock;
@@ -259,9 +265,11 @@ final class DocblockNodeVisitor extends AbstractAnalyzingNodeVisitor
         $types_without_null = [];
 
         foreach ($types_with_null as $type) {
-            if ('null' !== $type) {
-                $types_without_null[] = $type;
+            if ('null' === $type) {
+                continue;
             }
+
+            $types_without_null[] = $type;
         }
 
         return $types_without_null;

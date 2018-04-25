@@ -1,8 +1,9 @@
 <?php
-declare(strict_types = 1);
 /**
  * @copyright 2017-2018 Hostnet B.V.
  */
+declare(strict_types=1);
+
 namespace Hostnet\Component\TypeInference\Analyzer\Data\Type;
 
 use Hostnet\Component\TypeInference\Analyzer\Data\AnalyzedClass;
@@ -103,7 +104,7 @@ final class NonScalarPhpType extends AnalyzedClass implements PhpTypeInterface
         });
 
         if ($common_types !== null && count($common_types) === 1) {
-            return NonScalarPhpType::fromAnalyzedClass($common_types[0], $is_nullable);
+            return self::fromAnalyzedClass($common_types[0], $is_nullable);
         }
 
         return new UnresolvablePhpType(UnresolvablePhpType::INCONSISTENT);

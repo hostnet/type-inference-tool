@@ -1,8 +1,9 @@
 <?php
-declare(strict_types=1);
 /**
  * @copyright 2017-2018 Hostnet B.V.
  */
+declare(strict_types=1);
+
 namespace Hostnet\Component\TypeInference\Analyzer\DynamicMethod\Tracer\Parser\Storage;
 
 use Hostnet\Component\TypeInference\Analyzer\DynamicMethod\Tracer\Parser\Record\EntryRecord;
@@ -96,9 +97,11 @@ class FileRecordStorage implements RecordStorageInterface
             unlink($this->entry_records_file);
         }
 
-        if (file_exists($this->return_records_file)) {
-            unlink($this->return_records_file);
+        if (!file_exists($this->return_records_file)) {
+            return;
         }
+
+        unlink($this->return_records_file);
     }
 
     /**

@@ -1,8 +1,9 @@
 <?php
-declare(strict_types = 1);
 /**
  * @copyright 2017-2018 Hostnet B.V.
  */
+declare(strict_types=1);
+
 namespace Hostnet\Component\TypeInference\CodeEditor;
 
 use Hostnet\Component\TypeInference\CodeEditor\Instruction\AbstractInstruction;
@@ -26,7 +27,6 @@ class CodeEditorTest extends TestCase
 
     public function testGivenInstructionsAreAppliedToTargetProject()
     {
-
         $instruction_0 = $this->createMock(AbstractInstruction::class);
         $instruction_0->expects($this->exactly(1))->method('apply')->with($this->target_project);
 

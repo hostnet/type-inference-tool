@@ -1,8 +1,9 @@
 <?php
-declare(strict_types = 1);
 /**
  * @copyright 2017-2018 Hostnet B.V.
  */
+declare(strict_types=1);
+
 namespace Hostnet\Component\TypeInference\Analyzer\Data;
 
 use PHPUnit\Framework\TestCase;
@@ -67,7 +68,7 @@ class AnalyzedClassTest extends TestCase
         $implements = [
             new AnalyzedClass($namespace, 'ClassInterface1', '', null, [], []),
             new AnalyzedClass($namespace, 'ClassInterface2', '', $extends_2, [], []),
-            new AnalyzedClass($namespace, 'ClassInterface3', '', null, [$interface], [])
+            new AnalyzedClass($namespace, 'ClassInterface3', '', null, [$interface], []),
         ];
 
         $analyzed_class = new AnalyzedClass($namespace, 'MainClass', '', $extends_1, $implements, []);

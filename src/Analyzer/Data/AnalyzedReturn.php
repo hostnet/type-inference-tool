@@ -1,8 +1,9 @@
 <?php
-declare(strict_types = 1);
 /**
  * @copyright 2017-2018 Hostnet B.V.
  */
+declare(strict_types=1);
+
 namespace Hostnet\Component\TypeInference\Analyzer\Data;
 
 use Hostnet\Component\TypeInference\Analyzer\Data\Type\PhpTypeInterface;
@@ -36,9 +37,11 @@ class AnalyzedReturn
         $unique_returns = [];
 
         foreach ($analyzed_returns as $analyzed_return) {
-            if (!array_key_exists($analyzed_return->getType()->getName(), $unique_returns)) {
-                $unique_returns[$analyzed_return->getType()->getName()] = $analyzed_return;
+            if (array_key_exists($analyzed_return->getType()->getName(), $unique_returns)) {
+                continue;
             }
+
+            $unique_returns[$analyzed_return->getType()->getName()] = $analyzed_return;
         }
 
         return array_values($unique_returns);

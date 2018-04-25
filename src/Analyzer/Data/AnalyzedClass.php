@@ -1,8 +1,9 @@
 <?php
-declare(strict_types = 1);
 /**
  * @copyright 2017-2018 Hostnet B.V.
  */
+declare(strict_types=1);
+
 namespace Hostnet\Component\TypeInference\Analyzer\Data;
 
 /**
@@ -104,9 +105,11 @@ class AnalyzedClass
         $matches = [];
         foreach ($types as $type) {
             foreach ($compare_to_types as $compare_to_type) {
-                if ($type->getFqcn() === $compare_to_type->getFqcn()) {
-                    $matches[] = $type;
+                if ($type->getFqcn() !== $compare_to_type->getFqcn()) {
+                    continue;
                 }
+
+                $matches[] = $type;
             }
         }
         return $matches;
@@ -119,9 +122,11 @@ class AnalyzedClass
      */
     public function addMethod(string $function_name)
     {
-        if (!in_array($function_name, $this->methods, true)) {
-            $this->methods[] = $function_name;
+        if (in_array($function_name, $this->methods, true)) {
+            return;
         }
+
+        $this->methods[] = $function_name;
     }
 
     /**

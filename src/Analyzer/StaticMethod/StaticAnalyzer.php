@@ -1,8 +1,9 @@
 <?php
-declare(strict_types = 1);
 /**
  * @copyright 2017-2018 Hostnet B.V.
  */
+declare(strict_types=1);
+
 namespace Hostnet\Component\TypeInference\Analyzer\StaticMethod;
 
 use Hostnet\Component\TypeInference\Analyzer\Data\AnalyzedFunction;
@@ -74,7 +75,7 @@ final class StaticAnalyzer implements FunctionAnalyzerInterface
         $this->analyseDocblocks($analyzed_functions, $target_project);
 
         $this->logger->info(self::TIMER_LOG_NAME . ': Finished static analysis ({time}s)', [
-            'time' => round($stopwatch->stop(self::TIMER_LOG_NAME)->getDuration() / 1000, 2)
+            'time' => round($stopwatch->stop(self::TIMER_LOG_NAME)->getDuration() / 1000, 2),
         ]);
 
         return $analyzed_functions->getAll();
@@ -272,7 +273,7 @@ final class StaticAnalyzer implements FunctionAnalyzerInterface
             $function_index[$namespace . '\\' . $class_name] = [
                 'path' => $file->getRealPath(),
                 'methods' => $functions,
-                'parents' => array_merge($extended_class !== null ? [$extended_class] : [], $implements)
+                'parents' => array_merge($extended_class !== null ? [$extended_class] : [], $implements),
             ];
         }
 
@@ -294,9 +295,11 @@ final class StaticAnalyzer implements FunctionAnalyzerInterface
         }
 
         foreach ($function_index[$current_fqcn]['methods'] as $current_method) {
-            if (!in_array($current_method, $methods, true)) {
-                $methods[] = $current_method;
+            if (in_array($current_method, $methods, true)) {
+                continue;
             }
+
+            $methods[] = $current_method;
         }
 
         $parents = $function_index[$current_fqcn]['parents'];

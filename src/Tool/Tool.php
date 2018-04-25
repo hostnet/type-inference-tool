@@ -1,8 +1,9 @@
 <?php
-declare(strict_types = 1);
 /**
  * @copyright 2017-2018 Hostnet B.V.
  */
+declare(strict_types=1);
+
 namespace Hostnet\Component\TypeInference\Tool;
 
 use Bramus\Monolog\Formatter\ColoredLineFormatter;
@@ -182,7 +183,7 @@ class Tool extends Command
             "Type-Inference-Tool started for {project} (execution_id: '{id}')",
             [
                 'project' => $target_project,
-                'id' => self::getExecutionId()
+                'id' => self::getExecutionId(),
             ]
         );
 
@@ -280,7 +281,7 @@ class Tool extends Command
         $total_time = round($stopwatch->stop(self::NAME)->getDuration() / 1000, 2);
         $mem        = round(memory_get_peak_usage(true) / 1024 / 1024, 2);
 
-        $logger->info('DONE. Execution time: {time}s - Memory: {memory}MB', ['time' => $total_time,'memory' =>$mem]);
+        $logger->info('DONE. Execution time: {time}s - Memory: {memory}MB', ['time' => $total_time, 'memory' => $mem]);
         $execution_statistics = sprintf('Execution time: %ss - Memory: %sMB', $total_time, $mem);
         $this->io->newLine();
         $this->io->note($execution_statistics);
@@ -299,10 +300,12 @@ class Tool extends Command
         $this->code_editor->setDiffHandler(function (string $old, string $new, string $file) use ($differ) {
             $diff = $differ->diff($old, $new);
 
-            if ($diff !== '') {
-                $this->io->writeln($file);
-                $this->io->writeln($diff);
+            if ($diff === '') {
+                return;
             }
+
+            $this->io->writeln($file);
+            $this->io->writeln($diff);
         });
     }
 
@@ -374,7 +377,7 @@ class Tool extends Command
         $inferred_data = [
             self::RESULTS_COLUMN_RETURN_TYPES => 0,
             self::RESULTS_COLUMN_TYPE_HINTS => 0,
-            self::RESULTS_COLUMN_TOTAL => count($instructions)
+            self::RESULTS_COLUMN_TOTAL => count($instructions),
         ];
 
         foreach ($instructions as $instruction) {
@@ -382,9 +385,11 @@ class Tool extends Command
                 $inferred_data[self::RESULTS_COLUMN_RETURN_TYPES]++;
             }
 
-            if ($instruction instanceof TypeHintInstruction) {
-                $inferred_data[self::RESULTS_COLUMN_TYPE_HINTS]++;
+            if (!($instruction instanceof TypeHintInstruction)) {
+                continue;
             }
+
+            $inferred_data[self::RESULTS_COLUMN_TYPE_HINTS]++;
         }
 
         $this->io->table(array_keys($inferred_data), [array_values($inferred_data)]);

@@ -1,8 +1,9 @@
 <?php
-declare(strict_types=1);
 /**
  * @copyright 2017-2018 Hostnet B.V.
  */
+declare(strict_types=1);
+
 namespace Hostnet\Component\TypeInference\Analyzer\StaticMethod\NodeVisitor;
 
 use Hostnet\Component\TypeInference\Analyzer\Data\AnalyzedClass;
@@ -80,7 +81,7 @@ class FunctionNodeVisitorTest extends TestCase
                 'path' => null,
                 'methods' => [],
                 'parents' => [],
-            ]
+            ],
         ];
         $this->node_visitor = new FunctionNodeVisitor($this->collection, $this->file, $function_index);
     }
@@ -113,11 +114,11 @@ class FunctionNodeVisitorTest extends TestCase
     {
         $this->method_node = new ClassMethod('foobar', [
             'params' => [
-                new Param('arg0', null, new NullableType(ScalarPhpType::TYPE_STRING))
+                new Param('arg0', null, new NullableType(ScalarPhpType::TYPE_STRING)),
             ],
             'returnType' => 'string',
             'type' => 1,
-            'stmts' => [$this->return_node]
+            'stmts' => [$this->return_node],
         ], []);
         $this->traverseTree();
 
@@ -149,7 +150,7 @@ class FunctionNodeVisitorTest extends TestCase
             ],
             'returnType' => 'string',
             'type' => 1,
-            'stmts' => [$this->return_node]
+            'stmts' => [$this->return_node],
         ], []);
         $this->method_node->setDocComment(new Doc($docblock));
 
@@ -167,11 +168,11 @@ class FunctionNodeVisitorTest extends TestCase
     {
         $this->method_node = new ClassMethod('foobar', [
             'params' => [
-                new Param('arg0', new ConstFetch(new Name('true')), 'bool')
+                new Param('arg0', new ConstFetch(new Name('true')), 'bool'),
             ],
             'returnType' => new NullableType(new Name('SomeObject')),
             'type' => 1,
-            'stmts' => [$this->return_node]
+            'stmts' => [$this->return_node],
         ], []);
 
         $this->traverseTree();
@@ -200,18 +201,18 @@ class FunctionNodeVisitorTest extends TestCase
         $this->return_node    = new Return_(new String_('Hello'));
         $this->method_node    = new ClassMethod('foobar', [
             'params' => [
-                new Param('arg0', new ConstFetch(new Name('true')), 'bool')
+                new Param('arg0', new ConstFetch(new Name('true')), 'bool'),
             ],
             'returnType' => 'string',
             'type' => 1,
-            'stmts' => [$this->return_node]
+            'stmts' => [$this->return_node],
         ], []);
         $this->class_node     = new Class_('SomeClass', [
             'extends' => new Name(['AbstractSomeClass']),
             'implements' => [new Name(['SomeClassInterface'])],
             'stmts' => [
-                $this->method_node
-            ]
+                $this->method_node,
+            ],
         ], []);
         $this->namespace_node = new Namespace_(new Name(['Just', 'Some', 'NamespaceName']), [$this->class_node], []);
 

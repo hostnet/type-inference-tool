@@ -1,8 +1,9 @@
 <?php
-declare(strict_types = 1);
 /**
  * @copyright 2017-2018 Hostnet B.V.
  */
+declare(strict_types=1);
+
 namespace Hostnet\Component\TypeInference\Analyzer;
 
 use Hostnet\Component\TypeInference\Analyzer\Data\AnalyzedClass;
@@ -141,7 +142,7 @@ class ProjectAnalyzer
         }
 
         $this->logger->info(self::TIMER_LOG_NAME . ': Finished determining types ({time}s)', [
-            'time' => round($stopwatch->stop(self::TIMER_LOG_NAME)->getDuration() / 1000, 2)
+            'time' => round($stopwatch->stop(self::TIMER_LOG_NAME)->getDuration() / 1000, 2),
         ]);
 
         return $instructions;
@@ -289,13 +290,15 @@ class ProjectAnalyzer
                 continue;
             }
 
-            if ($amount_types > 1) {
-                $parent = $this->resolveMultipleTypes($used_types);
-                if ($parent instanceof UnresolvablePhpType) {
-                    $this->logInconsistentParamType($analyzed_function, $used_types, $arg_number);
-                }
-                $type_per_argument[$arg_number] = $parent;
+            if ($amount_types <= 1) {
+                continue;
             }
+
+            $parent = $this->resolveMultipleTypes($used_types);
+            if ($parent instanceof UnresolvablePhpType) {
+                $this->logInconsistentParamType($analyzed_function, $used_types, $arg_number);
+            }
+            $type_per_argument[$arg_number] = $parent;
         }
 
         return $type_per_argument;
@@ -573,11 +576,13 @@ class ProjectAnalyzer
                     continue;
                 }
 
-                if ($instruction instanceof ReturnTypeInstruction
-                    && $unresolvable_hint->getHintType() === UnresolvableHint::HINT_TYPE_RETURN
+                if (!($instruction instanceof ReturnTypeInstruction)
+                    || $unresolvable_hint->getHintType() !== UnresolvableHint::HINT_TYPE_RETURN
                 ) {
-                    unset($filtered_instructions[$i]);
+                    continue;
                 }
+
+                unset($filtered_instructions[$i]);
             }
         }
 
@@ -663,7 +668,7 @@ class ProjectAnalyzer
                 'arg_nr' => $arg_number,
                 'function' => $analyzed_function->getFunctionName(),
                 'fqcn' => $analyzed_function->getClass()->getFqcn(),
-                'types' => implode(', ', $used_type_names)
+                'types' => implode(', ', $used_type_names),
             ]
         );
     }
@@ -684,7 +689,7 @@ class ProjectAnalyzer
             [
                 'fqcn' => $analyzed_function->getClass()->getFqcn(),
                 'function' => $analyzed_function->getFunctionName(),
-                'types' => implode(', ', $used_type_names)
+                'types' => implode(', ', $used_type_names),
             ]
         );
     }
@@ -706,7 +711,7 @@ class ProjectAnalyzer
             [
                 'fqcn' => $analyzed_function->getClass()->getFqcn(),
                 'function' => $analyzed_function->getFunctionName(),
-                'parents' => implode(', ', $parent_classes)
+                'parents' => implode(', ', $parent_classes),
             ]
         );
     }
@@ -734,7 +739,7 @@ class ProjectAnalyzer
                 'parent_fqcn' => $parent_fqcn,
                 'parent_type' => $parent_return,
                 'child_fqcn' => $child_fqcn,
-                'child_type' => $child_return
+                'child_type' => $child_return,
             ]
         );
     }
@@ -752,7 +757,7 @@ class ProjectAnalyzer
             [
                 'fqcn' => $fqcn,
                 'function' => $function_name,
-                'arg_nr' => $arg_nr
+                'arg_nr' => $arg_nr,
             ]
         );
     }
@@ -780,7 +785,7 @@ class ProjectAnalyzer
                 'child_fqcn' => $child_fqcn,
                 'child_type' => $child_return,
                 'parent_fqcn' => $parent_fqcn,
-                'parent_type' => $parent_return
+                'parent_type' => $parent_return,
             ]
         );
     }

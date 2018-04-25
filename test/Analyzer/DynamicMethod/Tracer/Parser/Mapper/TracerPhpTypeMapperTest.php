@@ -1,8 +1,9 @@
 <?php
-declare(strict_types = 1);
 /**
  * @copyright 2017-2018 Hostnet B.V.
  */
+declare(strict_types=1);
+
 namespace Hostnet\Component\TypeInference\Analyzer\DynamicMethod\Tracer\Parser\Mapper;
 
 use Hostnet\Component\TypeInference\Analyzer\Data\Type\NonScalarPhpType;
@@ -45,9 +46,9 @@ class TracerPhpTypeMapperTest extends TestCase
             ['class ExampleProject\\SomeObject->SomeFunction', ['ExampleProject', 'SomeObject', 'SomeFunction']],
             [
                 'Twig_Loader_Filesystem->__construct',
-                [TracerPhpTypeMapper::NAMESPACE_GLOBAL, '\Twig_Loader_Filesystem', '__construct']
+                [TracerPhpTypeMapper::NAMESPACE_GLOBAL, '\Twig_Loader_Filesystem', '__construct'],
             ],
-            ['???', [null, TracerPhpTypeMapper::TYPE_UNKNOWN, null]]
+            ['???', [null, TracerPhpTypeMapper::TYPE_UNKNOWN, null]],
         ];
     }
 
@@ -63,18 +64,18 @@ class TracerPhpTypeMapperTest extends TestCase
             ['class ExampleProject\\SomeObject', new NonScalarPhpType('ExampleProject', 'SomeObject', '', null, [])],
             [
                 'class ExampleProject\\SomeObject->SomeFunction',
-                new NonScalarPhpType('ExampleProject', 'SomeObject', '', null, [])
+                new NonScalarPhpType('ExampleProject', 'SomeObject', '', null, []),
             ],
             [
                 'class ExampleProject\\SomeObject::StaticFunction',
-                new NonScalarPhpType('ExampleProject', 'SomeObject', '', null, [])
+                new NonScalarPhpType('ExampleProject', 'SomeObject', '', null, []),
             ],
             [
                 'ExampleProject\\SomeClass->ExampleProject\\{closure}',
-                new NonScalarPhpType(TracerPhpTypeMapper::NAMESPACE_GLOBAL, 'callable', '', null, [])
+                new NonScalarPhpType(TracerPhpTypeMapper::NAMESPACE_GLOBAL, 'callable', '', null, []),
             ],
             ['null', new UnresolvablePhpType(UnresolvablePhpType::NONE)],
-            ['...', new UnresolvablePhpType(UnresolvablePhpType::INCONSISTENT)]
+            ['...', new UnresolvablePhpType(UnresolvablePhpType::INCONSISTENT)],
         ];
     }
 }

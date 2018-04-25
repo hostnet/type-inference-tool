@@ -1,8 +1,9 @@
 <?php
-declare(strict_types = 1);
 /**
  * @copyright 2017-2018 Hostnet B.V.
  */
+declare(strict_types=1);
+
 namespace Hostnet\Component\TypeInference\Analyzer\DynamicMethod\Bootstrap;
 
 use PHPUnit\Framework\TestCase;
@@ -80,7 +81,7 @@ PHP
     {
         return [
             ['/ExampleDynamicAnalysis/Example-Project-1'],
-            ['/ExampleDynamicAnalysis/Example-Project-2']
+            ['/ExampleDynamicAnalysis/Example-Project-2'],
         ];
     }
 }

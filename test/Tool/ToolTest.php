@@ -1,8 +1,9 @@
 <?php
-declare(strict_types = 1);
 /**
  * @copyright 2017-2018 Hostnet B.V.
  */
+declare(strict_types=1);
+
 namespace Hostnet\Component\TypeInference\Tool;
 
 use Doctrine\DBAL\DriverManager;
@@ -140,7 +141,7 @@ class ToolTest extends TestCase
         $target_project = 'Some/Project/Directory';
         $this->command_tester->execute([
             Tool::ARG_TARGET => $target_project,
-            '--' . Tool::OPTION_ANALYSE_ONLY[0] => true
+            '--' . Tool::OPTION_ANALYSE_ONLY[0] => true,
         ]);
         $output = $this->command_tester->getDisplay();
 
@@ -152,7 +153,7 @@ class ToolTest extends TestCase
         $this->project_analyzer->expects(self::exactly(1))->method('setLogger');
         $this->command_tester->execute([
             Tool::ARG_TARGET                => 'Some/Project/Directory',
-            '--' . Tool::OPTION_LOG_FILE[0] =>  $this->log_dir
+            '--' . Tool::OPTION_LOG_FILE[0] =>  $this->log_dir,
         ]);
 
         self::assertFileExists($this->log_dir);
@@ -192,7 +193,7 @@ class ToolTest extends TestCase
         $this->command_tester->execute([
             Tool::ARG_TARGET => dirname(__DIR__) . '/Fixtures/ExampleDynamicAnalysis/Example-Project-1/',
             '--' . Tool::OPTION_SHOW_DIFF[0] => true,
-            '--' . Tool::OPTION_ANALYSE_ONLY[0] => true
+            '--' . Tool::OPTION_ANALYSE_ONLY[0] => true,
         ]);
         $output = $this->command_tester->getDisplay();
         self::assertContains("Diffs\n-----", $output);
@@ -222,7 +223,7 @@ class ToolTest extends TestCase
 
         $this->command_tester->execute([
             Tool::ARG_TARGET => 'Some/Project/Directory',
-            '--' . Tool::OPTION_STORAGE_TYPE[0] => $storage_type
+            '--' . Tool::OPTION_STORAGE_TYPE[0] => $storage_type,
         ]);
     }
 
@@ -236,7 +237,7 @@ class ToolTest extends TestCase
 
         $this->command_tester->execute([
             Tool::ARG_TARGET => 'Some/Project/Directory',
-            '--' . Tool::OPTION_STORAGE_TYPE[0] => $storage_type
+            '--' . Tool::OPTION_STORAGE_TYPE[0] => $storage_type,
         ]);
     }
 
@@ -258,7 +259,7 @@ class ToolTest extends TestCase
         $this->command_tester->execute([
             Tool::ARG_TARGET => 'Some/Project/Directory',
             '--' . Tool::OPTION_STORAGE_TYPE[0] => Tool::STORAGE_TYPE_DATABASE,
-            '--' . Tool::OPTION_DATABASE_CONFIG[0] => self::$db_config_file
+            '--' . Tool::OPTION_DATABASE_CONFIG[0] => self::$db_config_file,
         ]);
     }
 
@@ -277,7 +278,7 @@ class ToolTest extends TestCase
         $this->command_tester->execute([
             Tool::ARG_TARGET => dirname(__DIR__) . '/Fixtures/ExampleDynamicAnalysis/Example-Project-1/',
             '--' . Tool::OPTION_ANALYSE_ONLY[0] => true,
-            '--' . Tool::OPTION_IGNORE_FOLDERS[0] => 'src'
+            '--' . Tool::OPTION_IGNORE_FOLDERS[0] => 'src',
         ]);
 
         $output           = $this->command_tester->getDisplay();
@@ -293,7 +294,7 @@ class ToolTest extends TestCase
     {
         return [
             [Tool::STORAGE_TYPE_FILE, new FileRecordStorage()],
-            [Tool::STORAGE_TYPE_MEMORY, new MemoryRecordStorage()]
+            [Tool::STORAGE_TYPE_MEMORY, new MemoryRecordStorage()],
         ];
     }
 
@@ -301,7 +302,7 @@ class ToolTest extends TestCase
     {
         return [
             [Tool::STORAGE_TYPE_DATABASE],
-            ['Invalid value']
+            ['Invalid value'],
         ];
     }
 }

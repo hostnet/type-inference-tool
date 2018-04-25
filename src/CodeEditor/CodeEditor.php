@@ -1,8 +1,9 @@
 <?php
-declare(strict_types = 1);
 /**
  * @copyright 2017-2018 Hostnet B.V.
  */
+declare(strict_types=1);
+
 namespace Hostnet\Component\TypeInference\CodeEditor;
 
 use Hostnet\Component\TypeInference\CodeEditor\Instruction\AbstractInstruction;
@@ -40,9 +41,11 @@ class CodeEditor
     public function applyInstructions(string $target_project, bool $overwrite_files = true)
     {
         foreach ($this->instructions as $instruction) {
-            if ($instruction->apply($target_project, $this->diff_handler, $overwrite_files)) {
-                $this->applied_instructions[] = $instruction;
+            if (!$instruction->apply($target_project, $this->diff_handler, $overwrite_files)) {
+                continue;
             }
+
+            $this->applied_instructions[] = $instruction;
         }
     }
 

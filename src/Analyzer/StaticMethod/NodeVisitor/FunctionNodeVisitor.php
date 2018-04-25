@@ -1,8 +1,9 @@
 <?php
-declare(strict_types = 1);
 /**
  * @copyright 2017-2018 Hostnet B.V.
  */
+declare(strict_types=1);
+
 namespace Hostnet\Component\TypeInference\Analyzer\StaticMethod\NodeVisitor;
 
 use gossi\docblock\Docblock;
@@ -106,9 +107,11 @@ final class FunctionNodeVisitor extends AbstractAnalyzingNodeVisitor
      */
     private function handleNamespaceNode(Node $node)
     {
-        if ($node instanceof Namespace_) {
-            $this->current_class->setNamespace($node->name->toString());
+        if (!($node instanceof Namespace_)) {
+            return;
         }
+
+        $this->current_class->setNamespace($node->name->toString());
     }
 
     /**
@@ -132,10 +135,12 @@ final class FunctionNodeVisitor extends AbstractAnalyzingNodeVisitor
             $this->getClassMethodParameters($node)
         );
 
-        if ($node->getDocComment() !== null) {
-            $docblock = new Docblock($node->getDocComment()->getText());
-            $this->analyzed_functions[$this->current_function]->setDocblock($docblock);
+        if ($node->getDocComment() === null) {
+            return;
         }
+
+        $docblock = new Docblock($node->getDocComment()->getText());
+        $this->analyzed_functions[$this->current_function]->setDocblock($docblock);
     }
 
     /**
@@ -162,13 +167,15 @@ final class FunctionNodeVisitor extends AbstractAnalyzingNodeVisitor
             $this->current_class->setExtends($extended_class);
         }
 
-        if (in_array('implements', $node->getSubNodeNames(), true) && count($node->implements) > 0) {
-            $this->current_class->setImplements(array_map(function (Name $interface) {
-                list($namespace, $class_name) = TracerPhpTypeMapper::extractTraceFunctionName($interface->toString());
-                list($file_path, $functions)  = $this->listMethodsForChild($namespace, $class_name);
-                return new AnalyzedClass($namespace, $class_name, $file_path, null, [], $functions);
-            }, $node->implements));
+        if (!in_array('implements', $node->getSubNodeNames(), true) || count($node->implements) <= 0) {
+            return;
         }
+
+        $this->current_class->setImplements(array_map(function (Name $interface) {
+            list($namespace, $class_name) = TracerPhpTypeMapper::extractTraceFunctionName($interface->toString());
+            list($file_path, $functions)  = $this->listMethodsForChild($namespace, $class_name);
+            return new AnalyzedClass($namespace, $class_name, $file_path, null, [], $functions);
+        }, $node->implements));
     }
 
     /**

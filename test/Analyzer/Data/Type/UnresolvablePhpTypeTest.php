@@ -1,8 +1,9 @@
 <?php
-declare(strict_types = 1);
 /**
  * @copyright 2017-2018 Hostnet B.V.
  */
+declare(strict_types=1);
+
 namespace Hostnet\Component\TypeInference\Analyzer\Data\Type;
 
 use PHPUnit\Framework\TestCase;
@@ -59,7 +60,7 @@ class UnresolvablePhpTypeTest extends TestCase
             [new UnresolvablePhpType(UnresolvablePhpType::INCONSISTENT), false],
             [new UnresolvablePhpType(UnresolvablePhpType::NONE), true],
             [new UnresolvablePhpType(UnresolvablePhpType::DOCBLOCK_MULTIPLE), false],
-            [new UnresolvablePhpType(UnresolvablePhpType::DOCBLOCK), false]
+            [new UnresolvablePhpType(UnresolvablePhpType::DOCBLOCK), false],
         ];
     }
 }

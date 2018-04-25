@@ -1,8 +1,9 @@
 <?php
-declare(strict_types = 1);
 /**
  * @copyright 2017-2018 Hostnet B.V.
  */
+declare(strict_types=1);
+
 namespace Hostnet\Component\TypeInference\Analyzer;
 
 use Hostnet\Component\TypeInference\Analyzer\Data\AnalyzedCall;
@@ -247,18 +248,18 @@ class ProjectAnalyzerTest extends TestCase
 
         $interface        = new AnalyzedClass('Namespace', 'ClazzInterface', 'file0.php', null, [], ['foobar']);
         $interface_method = new AnalyzedFunction($interface, 'foobar', null, false, [
-            new AnalyzedParameter(), new AnalyzedParameter()
+            new AnalyzedParameter(), new AnalyzedParameter(),
         ]);
 
         $child1_class        = new AnalyzedClass('Namespace', 'Clazz1', 'file1.php', null, [$interface], ['foobar']);
         $child1_class_method = new AnalyzedFunction($child1_class, 'foobar', null, false, [
-            new AnalyzedParameter(), new AnalyzedParameter()
+            new AnalyzedParameter(), new AnalyzedParameter(),
         ]);
         $child1_class_method->addCollectedArguments(new AnalyzedCall([$type_int, $type_int]));
 
         $child2_class        = new AnalyzedClass('Namespace', 'Clazz2', 'file2.php', null, [$interface], ['foobar']);
         $child2_class_method = new AnalyzedFunction($child2_class, 'foobar', null, false, [
-            new AnalyzedParameter(), new AnalyzedParameter()
+            new AnalyzedParameter(), new AnalyzedParameter(),
         ]);
         $child2_class_method->addCollectedArguments(new AnalyzedCall([$type_int, $type_string]));
 
@@ -335,9 +336,11 @@ class ProjectAnalyzerTest extends TestCase
         $instructions = $project_analyzer->analyse($target_project);
 
         foreach ($instructions as $instruction) {
-            if ($instruction instanceof TypeHintInstruction) {
-                self::assertNotSame('getValue', $instruction->getTargetFunctionName());
+            if (!($instruction instanceof TypeHintInstruction)) {
+                continue;
             }
+
+            self::assertNotSame('getValue', $instruction->getTargetFunctionName());
         }
     }
 
@@ -403,7 +406,7 @@ class ProjectAnalyzerTest extends TestCase
             [1, [$type_obj_a, $type_obj_a]],
             [0, [$type_obj_a, $type_obj_b]],
             [0, [$type_inconsistent, $type_none]],
-            [0, []]
+            [0, []],
         ];
     }
 
@@ -452,7 +455,7 @@ class ProjectAnalyzerTest extends TestCase
             [0, [[$type_int, $type_int],[$type_string, $type_string]]],
             [2, [[$type_obj_a, $type_obj_b], [$type_obj_a, $type_obj_b]]],
             [0, [[$type_obj_a, $type_obj_b], [$type_obj_b, $type_obj_a]]],
-            [0, [[$type_inconsistent, $type_none]]]
+            [0, [[$type_inconsistent, $type_none]]],
         ];
     }
 

@@ -1,8 +1,9 @@
 <?php
-declare(strict_types = 1);
 /**
  * @copyright 2017-2018 Hostnet B.V.
  */
+declare(strict_types=1);
+
 namespace Hostnet\Component\TypeInference\CodeEditor\Instruction;
 
 use Hostnet\Component\TypeInference\Analyzer\Data\AnalyzedClass;
@@ -101,7 +102,7 @@ final class ReturnTypeInstruction extends AbstractInstruction
         $this->logger->debug('RETURN_TYPE: Added {type} to {fqcn}::{function}', [
             'type' => ($type->isNullable() ? '?' : '') . $type_representation,
             'fqcn' => $this->getTargetClass()->getFqcn(),
-            'function' => $this->getTargetFunctionName()
+            'function' => $this->getTargetFunctionName(),
         ]);
 
         return $file;

@@ -1,8 +1,8 @@
 <?php
-declare(strict_types=1);
 /**
  * @copyright 2017-2018 Hostnet B.V.
  */
+declare(strict_types=1);
 
 namespace Hostnet\Component\TypeInference\Analyzer\StaticMethod\NodeVisitor;
 
@@ -156,7 +156,7 @@ php
         $this->namespace_node = new Namespace_(new Name(['Just', 'Some', 'NamespaceName']), [
             new Use_([new UseUse(new Name($fqcn), 'SomeClass', 0)], 1),
             new Use_([new UseUse(new Name('Library\SomeUtilClass'), 'SomeTestClass', 0)], 1),
-            $this->class_node
+            $this->class_node,
         ], []);
 
         $this->method_node->setDocComment(new Doc(<<<'php'
@@ -214,10 +214,10 @@ php
 
         $this->collection = new AnalyzedFunctionCollection();
         $parent_class     = new AnalyzedClass('ExampleStaticProject', 'FooClassInterface', 'file.php', null, [], [
-            'doFoobar'
+            'doFoobar',
         ]);
         $parent_function  = new AnalyzedFunction($parent_class, 'doFoobar', null, false, [
-            new AnalyzedParameter('number')
+            new AnalyzedParameter('number'),
         ]);
         $parent_function->setDocblock(new Docblock(<<<'php'
 /**
@@ -231,21 +231,21 @@ php
         $this->collection->add($parent_function);
 
         $abstract_child_class      = new AnalyzedClass('ExampleStaticProject', 'AbstractSomeClass', 'file3.php', null, [
-            $parent_class
+            $parent_class,
         ], ['doFoobar']);
         $abstract_child_class_func = new AnalyzedFunction($abstract_child_class, 'doFoobar', null, false, [
-            new AnalyzedParameter('number')
+            new AnalyzedParameter('number'),
         ]);
         $abstract_child_class_func->setDocblock(new Docblock('/** @param $something_else blah blah. */'));
         $this->collection->add($abstract_child_class_func);
 
         $child_class = new AnalyzedClass('ExampleStaticProject', 'SomeClass', 'file3.php', $abstract_child_class, [], [
-            'foobar', 'doFoobar'
+            'foobar', 'doFoobar',
         ]);
         $this->collection->add(new AnalyzedFunction($child_class, 'foobar', null, false, []));
 
         $do_foobar_function = new AnalyzedFunction($child_class, 'doFoobar', null, false, [
-            new AnalyzedParameter('number')
+            new AnalyzedParameter('number'),
         ]);
         $this->collection->add($do_foobar_function);
 
@@ -253,12 +253,12 @@ php
         $this->class_node     = new Class_('SomeClass', [
             'extends' => new Name(['AbstractSomeClass']),
             'implements' => [],
-            'stmts' => [$this->method_node]
+            'stmts' => [$this->method_node],
         ], []);
         $this->method_node    = new ClassMethod('doFoobar', [
             'params' => [new Param('number', new LNumber(5))],
             'type' => 1,
-            'stmts' => [$this->return_node]
+            'stmts' => [$this->return_node],
         ], []);
 
         $this->method_node->setDocComment(new Doc('/** I inherit from my parent */'));
@@ -290,12 +290,12 @@ php
         $this->method_node = new ClassMethod('foobar', [
             'params' => [new Param('arg', new LNumber(5))],
             'type' => 1,
-            'stmts' => [$this->return_node]
+            'stmts' => [$this->return_node],
         ], []);
         $this->class_node  = new Class_('ChildClass', [
             'extends' => new Name(['ParentClass']),
             'implements' => [],
-            'stmts' => [$this->method_node]
+            'stmts' => [$this->method_node],
         ], []);
 
         $this->namespace_node = new Namespace_(new Name(['ExampleStaticProject']), [$this->class_node], []);
@@ -336,13 +336,13 @@ php
             'type' => 1,
             'stmts' => [$this->return_node],
             'attributes' => [
-                'comments' => [new Doc('/** This is a doc block. */')]
-            ]
+                'comments' => [new Doc('/** This is a doc block. */')],
+            ],
         ], []);
         $this->class_node     = new Class_('SomeClass', [
             'extends' => 'SomeClassParent',
             'implements' => null,
-            'stmts' => [$this->method_node]
+            'stmts' => [$this->method_node],
         ], []);
         $this->namespace_node = new Namespace_(new Name(['Just', 'Some', 'Ns']), [$this->class_node], []);
 
@@ -377,7 +377,7 @@ php
     {
         return [
             ['/** @return - */'],
-            ['/** @param invalid - */']
+            ['/** @param invalid - */'],
         ];
     }
 
@@ -395,7 +395,7 @@ php
             ['/** @return callable */', '\callable', false],
             ['/** @return null|\DateInterval */', '\DateInterval', true],
             ['/** @return \DateInterval|null */', '\DateInterval', true],
-            ['/** @return \DateInterval|null|string */', UnresolvablePhpType::DOCBLOCK_MULTIPLE, false]
+            ['/** @return \DateInterval|null|string */', UnresolvablePhpType::DOCBLOCK_MULTIPLE, false],
         ];
     }
 
@@ -421,13 +421,13 @@ php
             'params' => [new Param('arg0', new ConstFetch(new Name('true')), 'bool')],
             'returnType' => 'string',
             'type' => 1,
-            'stmts' => [$this->return_node]
+            'stmts' => [$this->return_node],
         ], []);
 
         $this->class_node     = new Class_('SomeClass', [
             'extends' => null,
             'implements' => null,
-            'stmts' => [$this->method_node]
+            'stmts' => [$this->method_node],
         ], []);
         $this->namespace_node = new Namespace_(new Name(['Just', 'Some', 'NamespaceName']), [$this->class_node], []);
 

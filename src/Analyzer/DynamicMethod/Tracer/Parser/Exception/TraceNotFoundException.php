@@ -1,8 +1,9 @@
 <?php
-declare(strict_types = 1);
 /**
  * @copyright 2017-2018 Hostnet B.V.
  */
+declare(strict_types=1);
+
 namespace Hostnet\Component\TypeInference\Analyzer\DynamicMethod\Tracer\Parser\Exception;
 
 /**
@@ -10,5 +11,4 @@ namespace Hostnet\Component\TypeInference\Analyzer\DynamicMethod\Tracer\Parser\E
  */
 class TraceNotFoundException extends \RuntimeException
 {
-
 }

@@ -1,8 +1,9 @@
 <?php
-declare(strict_types = 1);
 /**
  * @copyright 2017-2018 Hostnet B.V.
  */
+declare(strict_types=1);
+
 namespace Hostnet\Component\TypeInference\Analyzer\Data;
 
 use Hostnet\Component\TypeInference\Analyzer\Data\Exception\EntryNotFoundException;
@@ -85,13 +86,13 @@ class AnalyzedFunctionCollectionTest extends TestCase
             new AnalyzedFunction(
                 new AnalyzedClass('Namespace', 'ClassName', 'file.php', $extended, [$implemented]),
                 'foobar'
-            )
+            ),
         ];
         $expected             = [
             new AnalyzedFunction(
                 new AnalyzedClass('Namespace', 'ClassName', 'file.php', $extended, [$implemented], ['foobar']),
                 'foobar'
-            )
+            ),
         ];
 
         $this->collection->addAll($analyzed_functions_0);

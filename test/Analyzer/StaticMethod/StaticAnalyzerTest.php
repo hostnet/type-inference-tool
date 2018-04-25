@@ -1,8 +1,9 @@
 <?php
-declare(strict_types = 1);
 /**
  * @copyright 2017-2018 Hostnet B.V.
  */
+declare(strict_types=1);
+
 namespace Hostnet\Component\TypeInference\Analyzer\StaticMethod;
 
 use Hostnet\Component\TypeInference\Analyzer\Data\AnalyzedClass;
@@ -84,22 +85,22 @@ class StaticAnalyzerTest extends TestCase
             'ExampleProject\\SomeClass' => [
                 'path' => 'src/SomeClass.php',
                 'methods' => ['fn1', 'fn2'],
-                'parents' => ['ExampleProject\\SomeClassInterface', 'SomeVendor\\AbstractSomeClass']
+                'parents' => ['ExampleProject\\SomeClassInterface', 'SomeVendor\\AbstractSomeClass'],
             ],
             'ExampleProject\\SomeClassInterface' => [
                 'path' => 'src/SomeClassInterface.php',
                 'methods' => ['fn3', 'fn4'],
-                'parents' => []
+                'parents' => [],
             ],
             'SomeVendor\\AbstractSomeClass' => [
                 'path' => 'vendor/AbstractSomeClass.php',
                 'methods' => ['fn5', 'fn6'],
-                'parents' => ['HelloWorld\\AnotherClass']
+                'parents' => ['HelloWorld\\AnotherClass'],
             ],
             'HelloWorld\\AnotherClass' => [
                 'path' => 'vendor/HelloWorld/AnotherClass.php',
                 'methods' => ['fn7', 'fn8'],
-                'parents' => ['ExampleProject\\RandomClass']
+                'parents' => ['ExampleProject\\RandomClass'],
             ],
         ];
 

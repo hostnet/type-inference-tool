@@ -1,8 +1,9 @@
 <?php
-declare(strict_types = 1);
 /**
  * @copyright 2017-2018 Hostnet B.V.
  */
+declare(strict_types=1);
+
 namespace Hostnet\Component\TypeInference\Analyzer\Data\Type;
 
 use Hostnet\Component\TypeInference\Analyzer\Data\AnalyzedClass;
@@ -64,7 +65,7 @@ class NonScalarPhpTypeTest extends TestCase
     {
         $return_types  = [
             new AnalyzedClass('Namespace', 'ClassA', '', null, []),
-            new AnalyzedClass('Namespace', 'ClassB', '', null, [])
+            new AnalyzedClass('Namespace', 'ClassB', '', null, []),
         ];
         $common_parent = NonScalarPhpType::getCommonParent($return_types);
 
@@ -76,7 +77,7 @@ class NonScalarPhpTypeTest extends TestCase
     {
         $return_types = [
             new AnalyzedClass('Namespace', 'SomeClass', '', null, []),
-            new UnresolvablePhpType(UnresolvablePhpType::NONE)
+            new UnresolvablePhpType(UnresolvablePhpType::NONE),
         ];
 
         self::assertInstanceOf(UnresolvablePhpType::class, NonScalarPhpType::getCommonParent($return_types));
@@ -88,7 +89,7 @@ class NonScalarPhpTypeTest extends TestCase
             new NonScalarPhpType(null, 'array', null, null, [], []),
             new ScalarPhpType(ScalarPhpType::TYPE_STRING),
             new ScalarPhpType(ScalarPhpType::TYPE_STRING),
-            new ScalarPhpType(ScalarPhpType::TYPE_STRING)
+            new ScalarPhpType(ScalarPhpType::TYPE_STRING),
         ];
 
         self::assertInstanceOf(UnresolvablePhpType::class, NonScalarPhpType::getCommonParent($types));
