@@ -166,7 +166,7 @@ SELECT
         SELECT GROUP_CONCAT(p.param_type)
         FROM entry_record_parameter p
         WHERE p.execution_id = e.execution_id AND p.function_nr = e.function_nr
-        GROUP BY p.execution_id, p.function_nr
+        GROUP BY p.execution_id, p.function_nr, p.param_number
         ORDER BY p.param_number
     ) AS parameters
 FROM
@@ -229,7 +229,7 @@ sql
             Tool::getExecutionId(),
             $record->getNumber(),
             $record->getFunctionName(),
-            $record->isUserDefined() ? '1' : '0',
+            $record->isUserDefined() ? 1 : 0,
             $record->getFileName(),
             $declaration_file !== null ? $declaration_file : 'null',
         ];
