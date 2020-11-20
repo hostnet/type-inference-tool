@@ -1,3 +1,10 @@
+**Abandoned**
+
+This package is abandoned.
+Use alternative tools like:
+
+- [PHPCS has great typehinting support out-of-the-box](https://github.com/slevomat/coding-standard)
+
 # Type-inference-tool
 As of PHP 7.0 it is possible to add [scalar type hints](https://wiki.php.net/rfc/scalar_type_hints) and
 [return type declarations](https://wiki.php.net/rfc/return_types). The type-inference-tool is created to add these
